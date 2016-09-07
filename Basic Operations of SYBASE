@@ -1,0 +1,27 @@
+修改密码的操作；
+1> sp_password sybase, redhat
+2> go
+
+
+
+Sybase ASE 15.0.2静默安装脚本录制与执行
+
+--录制安装脚本
+./setup -console -options-record /home/sybase/ase1502-record
+
+--静默安装
+./setup -silent -options "/home/sybase/ase1502-record-hf" -W SybaseLicense.agreeToLicense=true
+
+--接受许可协议,必要选项
+-W SybaseLicense.agreeToLicense=true
+--替换已有的文件,可选选项
+-G replaceExistingResponse="yesToALL"
+--是否要将系统上当前存在的文件替换为要安装的文件
+replaceExistingResponse
+--当现有文件比要安装的文件更新时,是否要将系统上当前存在的文件替换为要安装的文件
+replaceNewerResponse
+--是否要删除系统上当前存在的文件
+removeExistingResponse
+--是否要删除自安装后已修改的文件
+removeModifiedResponse
+--有效值为
