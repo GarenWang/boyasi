@@ -25,3 +25,23 @@ removeExistingResponse
 --是否要删除自安装后已修改的文件
 removeModifiedResponse
 --有效值为
+
+
+T-SQL样例，创建一个表一列，两个表两列，三个表三列
+declare @i int select @i = 1
+declare @n int select @n = 3
+declare @j int
+declare @cmd1 varchar(255)
+select @cmd1 = 'create table '+'a'+convert(varchar(255),@i)+' (a'+convert(varchar(255),@i)+' int null)'
+exec (@cmd1)
+declare @cmd2 varchar(255)
+declare @cmd3 varchar(255)
+while @i <= @n
+begin
+    select @j=@i+1
+    select @cmd2='select * into '+'a'+convert(varchar(255),@j)+' from '+'a'+convert(varchar(255),@i)
+    exec (@cmd2)
+    select @cmd3='alter table '+'a'+convert(varchar(255),@j)+' add '+'a'+convert(varchar(255),@j)+' int null'
+    exec (@cmd3)    
+    select @i=@i+1
+end
