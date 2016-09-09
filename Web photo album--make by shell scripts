@@ -1,0 +1,104 @@
+准备材料：
+1.http://www.doubanmeinv.com
+2.eog
+3.firefox
+4.dos2unix
+
+获取图片的bash scripts（实现dbmeinv图片的爬虫）：
+[root@bys test]# cat img_downloader.sh 
+#!/bin/bash
+#conditions of running the shell script
+if [ $# -ne 3 ]
+then
+  echo "Usage: $0 URL -d DIRECTORY"
+  exit -1
+fi
+
+for i in {1..4}
+do
+  case $1 in
+  -d) shift; directory=$1; shift;;
+  *) url=${url:-$1}; shift;;
+  esac
+done
+
+#create a directory to save images by the date
+calender=`date +"%Y%m%d"`
+directory=$directory$calender
+mkdir -p $directory
+
+#analysis the url
+baseurl=$(echo $url | egrep -o "https?://[a-z.]+")
+curl -s $url > file.txt
+grep ".jpg" file.txt | sed 's/src="//g' | sed 's/" \/>//g' > /tmp/file1.txt
+
+#download images
+cd $directory
+
+/usr/bin/dos2unix -q /tmp/file1.txt
+while read filename;
+do
+  curl -s -O "$filename"
+done < /tmp/file1.txt
+
+sleep 10
+
+#rename images
+count=1
+
+for img in *.jpg
+do
+  new=dbmeinv-$count.${img##*.}
+  mv "$img" "$new" 2> /dev/null
+
+  if [ $? -eq '0' ]
+  then
+    echo "Renaming $img to $new OK" >> /var/log/img_loader$calender.log
+    let count++
+  fi
+done
+
+
+
+制作网页相册，真实目的是谢了一个index.html文件
+[root@bys images20150907]# cat generate_album.sh 
+#!/bin/bash
+echo "Creating album.."
+mkdir -p thumbs
+cat <<EOF > index.html
+<html>
+<head>
+<style>
+body
+{
+  width:470px;
+  margin:auto;
+  border:1px dashed grey;
+  padding:10px;
+}
+img
+{
+  margin:5px;
+  border:1px solid black;
+}
+</style>
+</head>
+<body>
+<center><h1> #Album title </h1></center>
+<p>
+EOF
+
+for img in *.jpg
+do
+  convert "$img" -resize "100x" "thumbs/$img"
+  echo "<a href=\"$img\" ><img src=\"thumbs/$img\" title=\"$img\" />
+</a>" >> index.html
+done
+
+cat <<EOF >> index.html
+</p>
+</body>
+</html>
+EOF
+
+echo Album generated to index.html
