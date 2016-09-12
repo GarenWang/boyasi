@@ -102,3 +102,46 @@ cat <<EOF >> index.html
 EOF
 
 echo Album generated to index.html
+
+
+
+Find_broken.sh(找出所有可以访问的连接)
+#!/bin/bash
+if [ $# -eq 2 ]
+then
+  echo -e "$Usage $0 URL\n"
+  exit -1;
+fi
+
+echo Broken links:
+
+mkdir /tmp/$$.lynx
+
+cd /tmp/$$.lynx
+
+lynx -traversal -accept_all_cookies $1 > /dev/null
+count=0
+sort -u reject.dat > links.txt
+
+while read link
+do
+  output=`curl -I $link -s | grep "HTTP/.*OK"`
+  if [[ -z $output ]]
+  then
+    echo $link
+    let count++
+  fi
+
+done < links.txt
+
+[ $count -eq 0 ] && echo No broken links found.
+
+
+
+Dbmv_download.sh(下载所有网页图片内容)
+#!/bin/bash
+/usr/bin/dos2unix -q /tmp/8093.lynx/urlss.txt
+while read filename
+do
+  /bin/bash /tmp/8093.lynx/img_downloader.sh $filename -d imagesmv
+done < /tmp/8093.lynx/urlss.txt
