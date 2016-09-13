@@ -1,0 +1,149 @@
+Diskcheck.sh
+
+#!/bin/bash
+logfile="diskusage.log"
+if [[ -n $1 ]]
+then
+  logfile=$1
+fi
+
+#if [ ! -e $logfile ]
+#then
+  #printf "%-8s %-14s %-9s %-8s %-6s %-6s %-6s %s\n" "Date" "IP address" "Device" "Capacity" "Used" "Free" "Percent" "Status" > $logfile
+  #> $logfile
+#fi
+> $logfile
+
+#IP_LIST="148.16.34.191"
+(
+for ip in `cat ipaddresses.txt`
+do
+  printf "%-8s %-14s %-22s %-8s %-6s %-6s %-6s %s\n" "Date" "IP address" "Device" "Capacity" "Used" "Free" "Percent" "Status" >> $logfile
+  ssh root@$ip 'df -HP' | grep ^/dev/ > /tmp/$(date "+%Y%m%d").df
+  #echo $ip
+  while read line
+  do
+    cur_date=$(date +%D)
+    printf "%-8s %-14s " $cur_date $ip
+    
+    device=`echo $line | awk '{printf $1;}' | awk -F'/' '{printf $NF;}'`
+    printf "%-23s" $device
+    
+    echo $line | awk '{ printf("%-8s %-6s %-6s %-8s",$2,$3,$4,$5); }'
+    pusg=$(echo $line | egrep -o "[0-9]+%")
+    pusg=${pusg/\%/}
+    
+    if [[ $pusg -lt 80 ]]
+    then
+      echo SAFE
+    else
+      echo ALERT
+    fi
+  done< /tmp/$(date "+%Y%m%d").df
+  echo
+  echo
+  echo
+done
+) >> $logfile
+
+
+
+OUTPUT:
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.72.16.2    VolGroup00-LogVol00    852G     193G   616G   24%     SAFE
+09/15/15 148.72.16.2    sda1                   104M     14M    86M    14%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.60.16.51   VolGroup00-LogVol00    255G     34G    208G   14%     SAFE
+09/15/15 148.60.16.51   sda1                   104M     21M    78M    22%     SAFE
+09/15/15 148.60.16.51   vgxniq-lvxniq          64G      59G    1.3G   98%     ALERT
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.60.16.49   VolGroup00-LogVol00    255G     152G   90G    63%     SAFE
+09/15/15 148.60.16.49   sda1                   104M     14M    85M    14%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.80.18.180  vda3                   33G      8.8G   23G    29%     SAFE
+09/15/15 148.80.18.180  vda1                   407M     18M    369M   5%      SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.80.18.181  vda3                   33G      3.8G   28G    13%     SAFE
+09/15/15 148.80.18.181  vda1                   407M     18M    369M   5%      SAFE
+09/15/15 148.80.18.181  vdb1                   159G     3.3G   148G   3%      SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.80.18.170  vda3                   33G      12G    20G    38%     SAFE
+09/15/15 148.80.18.170  vda1                   407M     18M    369M   5%      SAFE
+09/15/15 148.80.18.170  vdb1                   159G     72G    79G    48%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.80.18.172  vda3                   33G      5.7G   26G    19%     SAFE
+09/15/15 148.80.18.172  vda1                   407M     18M    369M   5%      SAFE
+09/15/15 148.80.18.172  vdb1                   85G      31G    50G    39%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.80.18.173  vda3                   33G      5.8G   26G    19%     SAFE
+09/15/15 148.80.18.173  vda1                   407M     18M    369M   5%      SAFE
+09/15/15 148.80.18.173  vdb1                   740G     512G   191G   73%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.120  vda3                   33G      27G    4.4G   87%     ALERT
+09/15/15 148.24.16.120  vda1                   407M     21M    365M   6%      SAFE
+09/15/15 148.24.16.120  vdb1                   159G     47G    104G   32%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.157  vda3                   33G      8.1G   24G    26%     SAFE
+09/15/15 148.24.16.157  vda1                   407M     21M    365M   6%      SAFE
+09/15/15 148.24.16.157  vdb1                   159G     130G   21G    87%     ALERT
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.162  vda3                   33G      6.4G   25G    21%     SAFE
+09/15/15 148.24.16.162  vda1                   407M     21M    365M   6%      SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.163  vda3                   33G      13G    19G    42%     SAFE
+09/15/15 148.24.16.163  vda1                   407M     21M    365M   6%      SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.164  vda3                   33G      23G    8.6G   73%     SAFE
+09/15/15 148.24.16.164  vda1                   407M     21M    365M   6%      SAFE
+09/15/15 148.24.16.164  vdb1                   43G      2.5G   38G    7%      SAFE
+09/15/15 148.24.16.164  vdb5                   106G     48G    53G    48%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.185  vg_local-lv_root       22G      8.4G   12G    42%     SAFE
+09/15/15 148.24.16.185  vda1                   407M     39M    348M   10%     SAFE
+09/15/15 148.24.16.185  vg_local-lv_opt        499G     250G   224G   53%     SAFE
+
+
+
+Date     IP address     Device                 Capacity Used   Free   Percent Status
+09/15/15 148.24.16.186  vda3                   33G      18G    14G    57%     SAFE
+09/15/15 148.24.16.186  vda1                   407M     21M    365M   6%      SAFE
+09/15/15 148.24.16.186  vdb1                   318G     56G    246G   19%     SAFE
