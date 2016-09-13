@@ -1,0 +1,7 @@
+第一次要输入密码，执行成功后不用输入密码
+#!/bin/bash
+for ip in `cat ipaddresses.txt`
+do
+  ssh root@$ip "[ -d /root/.ssh] && echo direcotry exists || mkdir -p /root/.ssh"
+  scp /root/.ssh/id_rsa.pub root@$ip:/root/.ssh/authorized_keys
+done
