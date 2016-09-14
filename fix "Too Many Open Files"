@@ -1,0 +1,38 @@
+首先查看日志：
+/opt/bea10/user_projects/domains/menhu_domain/log_menhuAdminServer.log.bak
+
+<2015-9-19 下午07时43分20秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162
+:7001, failure count: 1, failing for 0 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分21秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 2, failing for 1 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分23秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 3, failing for 3 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分26秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 4, failing for 6 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分30秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 5, failing for 10 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分35秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 6, failing for 15 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分41秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 7, failing for 21 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分48秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 8, failing for 28 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时43分56秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 9, failing for 36 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时44分05秒 CST> <Critical> <Server> <BEA-002616> <Failed to listen on channel "Default" on 148.24.16.162:7001, failure count: 10, failing for 45 seconds, java.net.SocketException: Too many open files> 
+<2015-9-19 下午07时44分05秒 CST> <Critical> <Server> <BEA-002617> <Attempting to close and reopen the server socket on on channel "Default" on 148.24.16.162:7001.> 
+<2015-9-19 下午07时44分15秒 CST> <Notice> <Server> <BEA-002614> <Reopening channel "Default" on 148.24.16.162:7001.> 
+<2015-9-19 下午07时44分15秒 CST> <Error> <Server> <BEA-002606> <Unable to create a server socket for listening on channel "Default". The address 148.24.16.162 might be incorrect or another process is using port 7001: java.net.SocketException: Too many open files.> 
+
+
+然后修改（ulimit）：
+/opt/bea10/wlserver_10.0/common/bin/commEnv.sh
+resetFd() {
+  if [ ! -n "`uname -s |grep -i cygwin || uname -s |grep -i windows_nt || \
+              uname -s |grep -i HP-UX`" ]
+  then
+    maxfiles=`ulimit -H -n`
+    if [ "$?" = "0" -a  `expr ${maxfiles} : '[0-9][0-9]*$'` -eq 0 ]; then
+        ulimit -n 32768 
+    fi
+  fi
+}
+
+
+ps -ef|grep java|grep bea10
+kill 31019
+ps -ef|grep java
+ls -l
+sh startmenhuAdminServer.sh 
