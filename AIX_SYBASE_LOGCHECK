@@ -1,0 +1,41 @@
+/opt/metadata/shell/daily
+aix：如果不确定家目录，用echo $HOME显示家目录的值，然后在做ssh无密码传输。
+aix上的脚本：
+$ vi checkerror_logs.sh
+$ pwd
+/home/sybase
+
+#!/bin/bash
+cd /opt/metadata/shell/daily
+dirname=/opt/metadata/shell/daily
+> /home/sybase/54sybase_error
+> /home/sybase/tmpnum.txt
+
+find $dirname -name "*.log" > /home/sybase/pearlog
+
+for pear in `cat /home/sybase/pearlog`
+do
+  cat $pear | grep -v bulk | grep -v "SQL Server" | grep -n "Error" | awk -F':' '{print $1}' > /home/sybase/tmpnum.txt
+  cat $pear | grep -v bulk | grep -v "SQL Server"  > /home/sybase/file
+
+  if [ -s /home/sybase/tmpnum.txt ]; then
+    echo $pear >> /home/sybase/54sybase_error
+  for line in `cat /home/sybase/tmpnum.txt`
+  do
+    index=$line
+    uindex=$(($index-8))
+    dindex=$(($index+6))
+    awk "NR==$uindex,NR==$dindex" /home/sybase/file >> /home/sybase/54sybase_error
+    echo  >> /home/sybase/54sybase_error
+    echo  >> /home/sybase/54sybase_error
+    echo  >> /home/sybase/54sybase_error
+  done
+  fi
+done
+
+
+
+139上的执行脚本：
+[root@zszsjapp 54aix]# cat getlogs.sh 
+#!/bin/bash
+ssh sybase@148.16.23.54 "/usr/bin/sh /home/sybase/checkerror_logs.sh" && scp sybase@148.16.23.54:/home/sybase/54sybase_error /home/garen/54aix/54logs/. 
