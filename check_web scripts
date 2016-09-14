@@ -1,0 +1,26 @@
+#!/bin/bash
+while read ipaddress
+do
+  wget --spider -q $ipaddress
+  if [ $? -ne 0 ]
+  then
+    echo $ipaddress is down!!!!!
+  fi
+done < weburl.txt
+
+
+
+
+#!/bin/bash   
+
+#网站url地址   
+URL="http://www.xxx.com/"  
+  
+#获取http响应代码   
+HTTP_CODE=`curl -m 10 -o /dev/null -s -w "%{http_code}" "${URL}"`   
+
+#服务器能正常响应，应该返回200的代码   
+if [ $HTTP_CODE != '200' ]
+then   
+	service httpd restart    
+fi
