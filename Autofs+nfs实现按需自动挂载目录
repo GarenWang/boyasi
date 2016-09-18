@@ -1,0 +1,11 @@
+Autofs+nfs实现按需自动挂载目录
+1.按照鸟哥的nfs配置篇操作搭建好nfs，能够实现手动挂载nfs
+然后，
+正常情况下，需要cd /xxx/xxx/xxx(注意，最后的挂载点一定要手动敲，后面会谈到如何不用手动敲)，因为默认是ll看不到挂载点的。
+
+如果敲了cd 挂载点，还是不行，那么就需要修改配置文件/etc/sysconfig/autofs:
+[root@bys public]# cat /etc/sysconfig/autofs | grep -v "^#"
+TIMEOUT=300
+BROWSE_MODE="no"（no，表示ls之类的命令是看不到挂载点的；yes，表示可以通过ls之类的命令看到挂载点，为了避免陷入误区，一般就设置为yes）
+MOUNT_NFS_DEFAULT_PROTOCOL=3(此处默认值是4，但是好像跨版本的linux挂载，挂不上，所以改为3,注意，还是要cd 挂载点)
+USE_MISC_DEVICE="yes"
