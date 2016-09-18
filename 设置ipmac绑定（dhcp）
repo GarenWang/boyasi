@@ -1,0 +1,33 @@
+#!/bin/bash 
+read -p "Do you finished the IP's settings in every client (y/n)? " yn 
+read -p "How many PC's in this class (ex> 60)? " num 
+if [ "$yn" = "y" ]; then 
+	for site in $(seq 1 ${num}) 
+	do 
+		siteip="192.168.100.${site}" 
+		allip="$allip $siteip" 
+		ping -c 1 -w 1 $siteip > /dev/null 2>&1 
+		if [ "$?" == "0" ]; then 
+			okip="$okip $siteip" 
+			else 
+				errorip="$errorip $siteip" 
+				echo "$siteip is DOWN" 
+		fi 
+	done 
+	[ -f dhcpd.conf ] && rm dhcpd.conf 
+	for site in $allip 
+	do 
+		pcname=pc$(echo $site | cut -d '.' -f 4) 
+		mac=$(arp -n | grep "$site " | awk '{print $3}') 
+		echo " host $pcname {" 
+		echo " hardware ethernet ${mac};" 
+		echo " fixed-address ${site};" 
+		echo " }" 
+		echo " host $pcname {" >> dhcpd.conf 
+		echo " hardware ethernet ${mac};" >> dhcpd.conf 
+		echo " fixed-address ${site};" >> dhcpd.conf 
+		echo " }" >> dhcpd.conf 
+	done 
+fi 
+echo "You can use dhcpd.conf (this directory) to modified your /etc/dhcp/dhcpd.conf" 
+echo "Finished."
