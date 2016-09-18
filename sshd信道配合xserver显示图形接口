@@ -1,0 +1,33 @@
+[root@garen ~]# export DISPLAY=148.16.34.180:10.0
+[root@garen ~]# env | grep DISPLAY
+DISPLAY=148.16.34.180:10.0
+[root@garen ~]# hostname
+garen.wang
+[root@garen ~]# xhost +148.16.34.180
+xhost:  unable to open display "148.16.34.180:10.0"
+
+[root@garen ~]# vim /etc/ssh/sshd_config ----确认 X11Forwarding yes前“#”去掉。
+[root@garen ~]# xauth list
+localhost.localdomain/unix:16  MIT-MAGIC-COOKIE-1  fb3eea91cda7d0c900432808b32e5626
+localhost.localdomain/unix:17  MIT-MAGIC-COOKIE-1  16715a7be4587574016283693e460d14
+localhost.localdomain/unix:18  MIT-MAGIC-COOKIE-1  5ad6539b95c27742056e0ff399038aee
+localhost.localdomain/unix:19  MIT-MAGIC-COOKIE-1  b6895ad0a56cb856085c52c9fed5ca31
+localhost.localdomain/unix:14  MIT-MAGIC-COOKIE-1  fb61d3684418837966806a38b813762e
+localhost.localdomain/unix:15  MIT-MAGIC-COOKIE-1  60ba5c654908053b46bafe6ec02fabb9
+localhost.localdomain/unix:10  MIT-MAGIC-COOKIE-1  32a04148b270fefd3fd2250ce307ee86
+localhost.localdomain/unix:11  MIT-MAGIC-COOKIE-1  a27af1e916919a513efbc5744db95a1d
+localhost.localdomain/unix:12  MIT-MAGIC-COOKIE-1  60ad1b8d1d328504c31fa178bba4671e
+localhost.localdomain/unix:13  MIT-MAGIC-COOKIE-1  3bd7fd849871b41b4b6e17a37531e657
+garen.wang/unix:0  MIT-MAGIC-COOKIE-1  ea6dfd663920d2816e9a53be6a1efd11
+garen.wang:0  MIT-MAGIC-COOKIE-1  ea6dfd663920d2816e9a53be6a1efd11
+garen.wang/unix:13  MIT-MAGIC-COOKIE-1  498bcda3eaa99d263b98f1eef30388e1
+garen.wang/unix:14  MIT-MAGIC-COOKIE-1  80fcba320a232b390a1f9a50ede3a967
+garen.wang/unix:12  MIT-MAGIC-COOKIE-1  953ac4821d4d8b4074a87b5d74c7e5e0
+garen.wang/unix:10  MIT-MAGIC-COOKIE-1  5df5ef85790c32ea2e090262f2aa75f7
+garen.wang/unix:11  MIT-MAGIC-COOKIE-1  d12cbe51e668d6c83cd219532f975c09
+[root@garen ~]# xauth add garen.wang/unix:10  MIT-MAGIC-COOKIE-1  5df5ef85790c32ea2e090262f2aa75f7
+[root@garen ~]# export DISPLAY=garen.wang:10.0
+[root@garen ~]# xhost +148.16.34.180
+X connection to garen.wang:10.0 broken (explicit kill or server shutdown).
+[root@garen ~]# xeyes
+测试OK！！！
