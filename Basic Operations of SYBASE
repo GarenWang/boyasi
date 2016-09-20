@@ -53,3 +53,13 @@ select datachange('[tablename]',null,null)
 go
 select convert(varchar(50),name), datachange(name,null,null) from sysobjects where type = 'U' and  datachange(name,null,null)  > 10 order by name
 go
+
+
+
+1> select db_name()
+2> go
+                                
+ ------------------------------ 
+ fktest                         
+
+(1 row affected)
