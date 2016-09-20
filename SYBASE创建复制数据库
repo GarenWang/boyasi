@@ -1,0 +1,141 @@
+1. 创建数据库 源端数据库  目标端数据库  同时添加两个复制用户（新建库需要添加属性）
+2. rs_init添加数据库
+3. 添加数据库复制定义和订阅
+--源端数据库上
+isql
+1> use sourcedb
+2> go
+1> sp_config_rep_agent sourcedb,"send warm standby xacts",true
+2> go
+1> sp_config_rep_agent sourcedb,'send maint xacts to replicate',true
+2> go
+1> sp_stop_rep_agent sourcedb
+2> go
+1> sp_start_rep_agent sourcedb
+2> go
+
+--rs上执行
+isql
+--复制定义
+1> create database replication definition rep_sourcesrv_sourcedb
+2> with primary at gse.sourcedb
+3> replicate DDL
+4> replicate tables
+5> replicate functions
+6> replicate transactions
+7> replicate system procedures
+8> go
+
+--复制订阅
+1> create subscription sub_targetsrv_targetdb
+2> for database replication definition rep_sourcesrv_sourcedb
+3> with primary at gse.sourcedb
+4> with replicate at gse.targetdb
+5> without materialization
+6> subscribe to truncate table
+7> go
+
+4. 初始化数据
+--1. 备份sourcedb
+isql -Usa -p -Jcp936 -w9999
+--sourcedb
+1> dump tran sourcedb with truncate_only
+2> go
+1> use sourcedb
+2> go
+--***跨平台dump的时候必须先执行这两条命令,不跨平台时可以不执行,建议都执行***
+1> sp_flushstats
+2> go
+--***等至少一分钟,一定要等,可以多执行几次***
+1> checkpoint
+2> go
+1> dump database sourcedb to "compress::5::/opt/fsrd1/backup/sourcedb_cmp5_20111226.dmp"
+2> go
+
+--2. 挂起一级复制中的网络发票连接
+--rs
+isql
+1> suspend connection to targetsrv.targetdb
+2> go
+
+--3. 通过ftp将dmp文件传到备点的服务器上(目标端数据库)
+
+--4. 初始化备点数据库
+--
+isql
+--load的时候如果有其他人连接,可以修改端口(1024-65535)
+1> load database targetdb from "compress::5::/opt/repdir/sourcedb_cmp5_20111226.dmp"
+2> online database targetdb
+3> go
+--去掉第二截断点并且截断日志
+1> use targetdb
+2> go
+1> dbcc gettrunc
+2> go
+1> dbcc settrunc(ltm,'ignore')(第2截断点的标识ltm)
+2> go
+1> dump tran targetdb with truncate_only
+2> go
+--修正索引和清日志没有特定的先后顺序,如果日志空间不够可以先清日志
+--dump完成后登录里面市州用户映射会乱,先将错误的映射移除,确定后在加入正确的映射
+***跨平台必须执行，需要较长时间*************
+1> use targetdb
+2> go
+1> sp_post_xpload
+2> go
+
+--4. 恢复连接
+--rs
+isql
+1> resume connection to targetsrv.targetdb
+2> go
+
+--5测试回放是否正常
+
+
+
+
+
+
+
+1> admin who_is_down
+2> go
+
+ase的日志在install/gse.log
+
+
+
+
+
+sysadmin dump_file,'gse.targetdb_20150924.log'
+
+sysadmin log_first_tran,1,gse,targetdb
+
+
+
+
+
+
+
+
+开启日志记录
+sysadmin dump_file,'p9ba4db.hblt_oltp_20120217.log'
+go
+记录指定连接中第一条阻塞的日志
+sysadmin log_first_tran,1,p9ba4db,hblt_oltp
+go
+关闭日志记录
+sysadmin dump_file
+go
+
+
+启用复制
+1> sp_reptostandby hblt_wlfp,'all',use_index
+2> go
+1> sp_configure "enable rep agent threads",1
+2> go
+
+
+跳过一条失败的语句
+1> resume connection to gse.targetdb skip tran
+2> go
