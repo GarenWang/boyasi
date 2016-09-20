@@ -53,3 +53,17 @@ line2
 line3
 line4
 happy hacking !
+
+
+
+查看进程打开的文件数
+lsof -p 16140|wc -l
+
+查看某个文件正在被哪些进程使用
+lsof filename
+
+列出谁在使用某个特定的udp端口
+lsof -i udp:55
+
+特定的tcp端口
+lsof -i tcp:80
