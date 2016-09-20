@@ -45,3 +45,11 @@ begin
     exec (@cmd3)    
     select @i=@i+1
 end
+
+
+
+--查找有数据更改的表
+select datachange('[tablename]',null,null)
+go
+select convert(varchar(50),name), datachange(name,null,null) from sysobjects where type = 'U' and  datachange(name,null,null)  > 10 order by name
+go
