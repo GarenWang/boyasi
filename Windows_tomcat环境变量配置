@@ -1,0 +1,4 @@
+Windows配置环境变量如下：
+JAVA_HOME = D:\opt\jdk\jdk1.5.0_15
+PATH = %JAVA_HOME%\bin;%JAVA_HOME%\jre\bin;%JAVA_HOME%\lib;%JAVA_HOME%\jre\lib;
+CLASSPATH = %JAVA_HOME%\lib;%JAVA_HOME%\jre\lib;
