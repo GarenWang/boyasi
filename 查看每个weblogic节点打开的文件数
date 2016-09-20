@@ -1,0 +1,24 @@
+[root@fkapp1 opt]# cat openfs.sh
+#!/bin/bash
+. /etc/profile
+. ~/.bash_profile
+(
+DATE=$(date "+%Y%m%d-%H-%M-%S")
+echo
+echo
+echo
+printf "%-30s %-8s %-14s\n" "Date" "NodeName" "OpenFiles" >> /opt/NodeX-pfiles.txt
+for nname in {fkNodeA,fkNodeB,fkNodeC}
+do
+ps -ef | grep java | grep weblogic | grep $nname | awk '{print $2}' | xargs lsof -p &> /dev/null
+if [ $? = 0 ]; then
+num=`ps -ef | grep java | grep weblogic | grep $nname | awk '{print $2}' | xargs lsof -p | wc -l`
+printf "%-30s %-8s %-14s\n" $DATE $nname $num
+fi
+
+done
+) >> /opt/NodeX-pfiles.txt
+
+
+[root@fkapp1 opt]# crontab -l
+*/1 * * * * /bin/bash /opt/openfs.sh >> /opt/openfs.log 2>&1 &
