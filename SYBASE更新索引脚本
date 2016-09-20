@@ -21,3 +21,40 @@ EOF
 
 
 done < tablelist.txt
+
+
+
+更新索引的存储过程
+create procedure p_update_statistics
+as
+begin
+declare @name varchar(100)
+declare @datachange int
+declare @execsql varchar(500)
+
+set nocount on
+set flushmessage on
+declare cur_table cursor for
+select name from sysobjects where type = 'U'
+open cur_table          
+fetch cur_table into @name      
+  
+while ( @@sqlstatus = 0 )
+begin
+select @datachange = datachange(@name, null, null)
+select convert(varchar,getdate(),23) || " " || @name || " datachange:"|| convert(varchar,@datachange)||"% ("||convert(varchar,row_count(db_id(),object_id(@name))) || ")"
+if @datachange > 5
+begin
+	select "datachange% >5!"
+        set @execsql = "update statistics " || @name
+        execute (@execsql)
+        set @execsql = "update index statistics " || @name
+        execute (@execsql)
+end
+select convert(varchar,getdate(),23) || " " || @name || " update statistics end"
+fetch cur_table into @name
+end
+close cur_table
+deallocate cursor cur_table
+end
+go
