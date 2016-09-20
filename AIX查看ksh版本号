@@ -1,0 +1,5 @@
+aix查看ksh版本号：
+$ set -o emacs
+$ ksh 
+然后按ctrl+v,ksh那一行会变为下面这一行：
+$ Version M-11/16/88f
