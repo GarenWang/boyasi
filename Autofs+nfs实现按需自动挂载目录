@@ -9,3 +9,37 @@ TIMEOUT=300
 BROWSE_MODE="no"（no，表示ls之类的命令是看不到挂载点的；yes，表示可以通过ls之类的命令看到挂载点，为了避免陷入误区，一般就设置为yes）
 MOUNT_NFS_DEFAULT_PROTOCOL=3(此处默认值是4，但是好像跨版本的linux挂载，挂不上，所以改为3,注意，还是要cd 挂载点)
 USE_MISC_DEVICE="yes"
+
+
+
+[root@bys /]# cat /etc/auto.cluster 
+* 148.16.34.180:/cluster/&
+[root@bys /]# cat /etc/auto.rhome 
+* 148.16.34.180:/rhome/&
+[root@bys /]# cat /etc/auto.master |
+>  grep -E -v "^#" | grep -v -E "^$"
+/misc	/etc/auto.misc
+/net	-hosts
++auto.master
+/home/nfs /etc/auto.nfs
+/rhome /etc/auto.rhome
+/cluster /etc/auto.cluster
+[root@bys /]# cat /etc/sysconfig/autofs | grep -E -v "^#" | grep -v -E "^$"
+TIMEOUT=300
+BROWSE_MODE="yes"
+MOUNT_NFS_DEFAULT_PROTOCOL=3
+USE_MISC_DEVICE="yes"
+[root@bys /]# service autofs restart
+Stopping automount:                                        [  OK  ]
+Starting automount:                                        [  OK  ]
+
+
+[root@bys /]# su - cluser1
+[cluser1@clientlinux ~]$ su - cluser2
+Password: 
+[cluser2@clientlinux ~]$ 
+
+[root@clientlinux ~]# cd /cluster/cms/
+[root@clientlinux cms]# ll
+total 0
+-rw-r--r-- 1 root root 0 Sep 24 18:11 test.txt
