@@ -7,8 +7,7 @@
 
 while read tablename
 do
-
-isql -Usa -Shbdsfkdb -PFK2015db78 -Dfktest -p -w999999 -Jcp936 << EOF
+isql -Usa -Sxxxxdb -Pxxxx -Dfktest -p -w999999 -Jcp936 << EOF
 sp_spaceused $tablename
 go
 update statistics $tablename
