@@ -1,0 +1,8 @@
+--查看卷组空间
+pvscan
+--查看逻辑卷空间
+lvscan
+--扩逻辑卷空间
+lvextend -A y -L +5G /dev/vgxniq/lvxniq
+--扩文件系统空间
+resize2fs /dev/vgxniq/lvxniq
