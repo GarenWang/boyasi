@@ -1,0 +1,462 @@
+1.通过printf来使用格式化字符串
+[root@garen test1]# cat printf.sh 
+#!/bin/bash
+#Filename: printf.sh
+
+printf "%-5s %-10s %-4s\n" No Name Mark
+printf "%-5s %-10s %-4.2f\n" 1 Sarath 80.3456
+printf "%-5s %-10s %-4.2f\n" 2 James 90.9989
+printf "%-5s %-10s %-4.2f\n" 3 Jeff 77.564
+
+[root@garen test1]# chmod +x printf.sh 
+[root@garen test1]# ./printf.sh
+No    Name       Mark
+1     Sarath     80.35
+2     James      91.00
+3     Jeff       77.56
+
+2.监视远程磁盘的健康状况
+[root@zszsjapp garen]# cat diskcheck.sh
+#!/bin/bash
+logfile="diskusage.log"
+if [[ -n $1 ]]
+then
+  logfile=$1
+fi
+> $logfile
+
+(
+for ip in `cat ipaddresses.txt`
+do
+  printf "%-8s %-14s %-22s %-8s %-6s %-6s %-6s %s\n" "Date" "IP address" "Device" "Capacity" "Used" "Free" "Percent" "Status" >> $logfile
+  ssh root@$ip 'df -HP' | grep ^/dev/ > /tmp/$(date "+%Y%m%d").df
+  while read line
+  do
+    cur_date=$(date +%D)
+    printf "%-8s %-14s " $cur_date $ip
+    
+    device=`echo $line | awk '{printf $1;}' | awk -F'/' '{printf $NF;}'`
+    printf "%-23s" $device
+    
+    echo $line | awk '{ printf("%-8s %-6s %-6s %-8s",$2,$3,$4,$5); }'
+    pusg=$(echo $line | egrep -o "[0-9]+%")
+    pusg=${pusg/\%/}
+    
+    if [[ $pusg -lt 80 ]]
+    then
+      echo SAFE
+    else
+      echo ALERT
+    fi
+  done< /tmp/$(date "+%Y%m%d").df
+  echo
+  echo
+  echo
+done
+) >> $logfile 
+
+3.打印彩色输出
+echo -e "\e[1;31m This is red text \e[0m"
+ 
+
+4.变量的引用方式
+两种：echo $var 或者 echo ${var}
+
+5.var=value表示赋值，var = value表示判断是否相等，如果value不包含任何空白字符，那么不需要使用引号进行引用，反之，则必须使用单引号或者双引号进行引用。
+
+6.获得字符串长度
+length=${#var}，length的值就是字符串的长度了（字符串的字符数）。
+
+7.bc的高级用法
+[root@www /]# no=100
+[root@www /]# echo "obase=2;$no" | bc
+1100100
+[root@www /]# no=1100100
+[root@www /]# echo "obase=10;ibase=2;$no" | bc  #这里的顺序不能变obase必须在前
+100
+
+8.将标准错误（2）转换成标准输出（1），然后重定向到out.txt文件中
+[root@www /]# ls + &> out.txt（在rhel5上测试2>&1的方式不成功，需要放在行尾）
+[root@www /]# cat out.txt 
+ls: +: No such file or directory
+
+9./dev/null—bitbucket（黑洞）
+
+10.重定向脚本内部的文本块
+[root@www /]# cat <<EOF>out.txt
+> This is a test log file
+> Function: System staistics
+> EOF
+[root@www /]# cat out.txt 
+This is a test log file
+Function: System staistics
+
+11.<操作符用于从文件中读取至stdin。>操作符用于截断模式的文件写入（数据在目标文件被截断之后写入）。>>操作符用于追加模式的文件写入（数据被添加到文件的现有内容中，而且该目标文件中原有的内容不会丢失）。文件描述符可以用以上三种模式中的任意一种来创建。
+[root@www test1]# touch input.txt
+[root@www test1]# exec 3<input.txt
+[root@www test1]# echo this is a test line > input.txt
+[root@www test1]# exec 3<input.txt
+[root@www test1]# cat <&3
+this is a test line
+[root@www test1]# cat <& 3
+[root@www test1]# cat <&3
+[root@www test1]# exec 4>output.txt
+[root@www test1]# echo newline >&4
+[root@www test1]# cat output.txt 
+newline
+[root@www test1]# exec 5>>output.txt
+[root@www test1]# echo appended line >&5
+[root@www test1]# cat output.txt 
+newline
+appended line
+
+12.数组和关联数组
+普通数组只能使用整数作为数组索引，而关联数组可以使用字符串作为数组索引。Bash从4.0版本开始支持关联数组。
+以清单的形式打印出数组中的所有值：
+[root@www test1]# echo ${array_var[*]}
+1 2 3 4 5 6
+[root@www test1]# echo ${array_var[@]}
+1 2 3 4 5 6
+与打印字符串的长度方法一样，打印一个数组长度的方法如下：
+[root@www test1]# echo ${#array_var[*]}
+6
+[root@www test1]# echo ${#array_var[@]}
+6
+关联数组
+在关联数组中，可以使用任意的文本作为数组索引。在普通数组中，只能使用整数作为数组索引。
+# declare -A ass_array
+内嵌索引-值列表赋值：
+# ass_array=([index1]=val1 [index2]=val2)
+独立索引-值列表赋值：
+# ass_array[index1]=val1
+# ass_array[index2]=val2
+列出数组索引的值（同样适用于普通数组）：
+# echo ${!ass_array[*]}
+index1 index2
+# echo ${!ass_array[@]}
+index1 index2
+
+13.设置永久别名—修改”~/.bashrc”文件
+echo ‘alias cmd=”command seq”’ >> ~/.bashrc 
+alias rm=’cp $@ ~/backup; rm $@’ ($@的意义是--所有参数列表)
+忽略当前别名，直接执行原本命令的方法：
+[root@clientlinux test]# which ls
+alias ls='ls --color=auto'
+	/bin/ls
+[root@clientlinux test]# ls
+ping.sh
+[root@clientlinux test]# \ls ---在不确认安全的环境中，使用此方式有奇效。
+ping.sh
+
+14.获取终端信息
+获取终端的列数（cols）和行数（lines）
+[root@www test1]# tput cols
+140
+[root@www test1]# tput lines
+41
+将光标移动到坐标（100,100）处
+tput cup 100 100
+设置终端背景色
+tput setb no
+设置终端前景色
+tput setf no
+no可以取到0-7
+设置下划线的起止
+tput smul
+tput rmul
+删除当前光标到行尾的所有内容（结合tput cup x y使用）
+tput ed
+
+15.操作日期和时间
+将日期串转换成纪元时
+[root@www test1]# date --date "Sat Oct 10 10:51:07 CST 2015" +%s
+1444445467
+使用tput和sleep从0计数到40
+[root@www test1]# cat sleep.sh 
+#!/bin/bash
+echo -n Count:
+tput sc
+
+count=0
+while true
+do
+	if [ $count -lt 40  ];
+	then
+		let count++
+		sleep 1
+		tput rc
+		tput ed
+		echo -n $count
+else
+	exit 0
+fi
+done
+
+16.bash shell调试方法
+使用“调试钩子”
+[root@www test1]# cat debugtest.sh 
+#!/bin/bash
+function DEB()
+{
+	[ "$DEBUG" == "on" ] && $@ || : #这里的”:”告诉shell不要执行任何操作（： commands，这里的commands是不执行的，但是：如果commands换行或者;commands还是会执行的）
+}
+
+for i in {1..10}
+do
+DEB echo $i
+done
+[root@www test1]# DEBUG=on ./debugtest.sh 
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+[root@www test1]# DEBUG=off ./debugtest.sh
+使用shebang调试
+把shebang从#!/bin/bash改成#!/bin/bash –xv,这样就可以不用任何其他选项就可以启用调试功能了。
+
+17.函数
+function fname()
+{
+statements;
+}
+或者
+fname()
+{
+statements
+}
+调用函数
+fname
+fname arg1 arg2
+递归函数
+# F() { echo $1;F hello; sleep 1; } --定义函数,注意大括号前后的空格，必须要有
+# F --调用
+或者写到一行
+F() { echo $1;F hello; sleep 1; }; F --sleep 1后的”;”是必要的，不然sleep1这个句子并没有结束
+Fork炸弹
+:() { :|:& }; :
+导出函数
+export –f fname
+利用子shell生成一个独立的进程
+子shell本身就是独立的进程。可以使用()操作符来定义一个子shell
+[root@www test1]# pwd;
+/home/garen/test1
+[root@www test1]# (cd /bin; ls) --子shell
+[root@www test1]# pwd;
+/home/garen/test1 --注意目录没有变化
+通过引用子shell的方式保留空格和换行符
+[root@www test1]# out=$(cat text.txt)
+[root@www test1]# echo "$out"
+1
+2
+3
+[root@www test1]# echo $out
+1 2 3
+
+18. read的限时输入和定界符使用
+限时输入
+read –t 2 var –在2秒内将键入的字符串读入变量var
+用定界符结束输入行
+[root@www test1]# read -d ":" var
+hello:[root@www test1]# echo $var
+hello
+
+19.字段分隔符和迭代器
+内部字段分隔符（IFS），IFS是存储定界符的环境变量。它是当前shell环境使用的默认定界字符串。
+[root@www test1]# cat ifst.sh 
+#!/bin/bash
+data="name,sex,rollno,location"
+oldIFS=$IFS
+IFS=,
+for item in $data
+do
+	echo Item: $item
+done
+
+IFS=$oldIFS
+[root@www test1]# ./ifst.sh 
+Item: name
+Item: sex
+Item: rollno
+Item: location
+[root@www test1]# cat ifst.sh 
+#!/bin/bash
+data="name,sex,rollno,location"
+oldIFS=$IFS
+IFS=,now
+for item in $data
+do
+	echo Item: $item
+done
+
+IFS=$oldIFS
+[root@www test1]# ./ifst.sh 
+Item:
+Item: ame
+Item: sex
+Item: r
+Item: ll
+Item:
+Item:
+Item: l
+Item: cati
+Item:
+[root@www test1]#
+字符串比较时，最好用双中括号[[]]
+
+20.Cat命令
+使用cat将标准输入和输入文件的内容拼接在一起
+[root@www test1]# echo 'Text through stdin' | cat - file.txt
+Text through stdin
+helloworld
+压缩空白行
+cat –s file
+结合tr移除空白行
+cat test.txt | tr –s ‘\n’ --tr的这种方式可以将多个’\n’字符压缩成单个’\n’(换行符)
+将制表符显示为^|
+[root@www test1]# cat file.py 
+def function():
+	var = 5
+	     next = 6
+
+	third = 7
+[root@www test1]# cat -T file.py
+def function():
+^Ivar = 5
+^I     next = 6
+
+^Ithird = 7
+
+21.命令行录制与回放
+[root@www test1]# script -t 2> timing.log -a output.session
+[root@www test1]#scriptreplay timing.log output.session –scriptreplay可能没有安装（rhel6默认安装），手动安装就行(util-linux*)
+多个用户之间进行广播的视频会话
+在Terminal1上
+[root@clientlinux ~]# mkfifo scriptfifo
+[root@clientlinux ~]# script -f scriptfifo –输入命令，输入exit结束录制和播放
+Script started, file is scriptfifo
+在Terminal2上
+[root@clientlinux ~]# cat scriptfifo
+
+22.文件查找—find
+-print0指明使用’\0’作为定界符来打印每一个匹配的文件名。
+-iname忽略字母大小写
+find . \( -name "*.txt" -o -name "*.pdf" \) --\(…\)用于将括号内的内容视为一个整体
+否定参数
+!
+结合-exec使用cat命令
+find . –type f –name “*.c” –exec cat {} \; > all_c_files.txt
+-exec结合多个命令
+-exec ./commands.sh {} \;
+
+23.玩转xargs
+当-I和xargs结合使用时，对于每一个参数，命令都会被执行一次
+# cat args.txt 
+arg1
+arg2
+arg3
+# cat args.txt | xargs -I {} ./cecho.sh -p {} -1
+-p arg1 -1 #
+-p arg2 -1 #
+-p arg3 -1 #
+结合find使用args
+错误的写法--# find . -type f -name "*.txt" -print | xargs -0 rm –f(这种写法会导致hell text.txt被误解为hell和text.txt)
+正确的写法--#find . -type f -name "*.txt" -print0 | xargs -0 rm -f
+结合stdin，巧用while语句和子shell
+# cat files.txt | ( while read args; do echo $args; done )
+1
+2
+3
+4
+5
+6
+76
+# cat files.txt | xargs -I {} echo {}
+1
+2
+3
+4
+5
+6
+76
+
+24.用tr进行转换
+用tr删除字符
+tr –d ‘[set1]’
+字符集补集
+# echo hello 1 char 2 next 4 | tr -d -c '0-9 \n'
+ 1  2  4
+# echo hello 1 char 2 next 4 | tr -d  '0-9 \n'
+hellocharnext# echo hello 1 char 2 next 4 --注意换行符
+hello 1 char 2 next 4
+# echo hello 1 char 2 next 4 | tr -d  'a-z \n'
+124# echo hello 1 char 2 next 4 | tr -d  -c 'a-z \n' --注意换行符
+hello  char  next
+用tr压缩字符
+tr –s ‘[set]’
+用tr将文件中的数字列表进行相加
+# cat sum.txt 
+1
+2
+3
+4
+5
+6
+7
+# cat sum.txt | echo $[ $(tr '\n' '+' ) 0 ]—此处相当于echo $[ 1+2+3+4+5+6+7 ]
+28
+
+25.校验和与核实
+md5sum *.*--生成md5值，可以匹配正则
+md5sum –c *.* --检验md5值，可以匹配正则
+对目录进行校验
+[root@clientlinux test]# find directory_path -type f -print0 | xargs -0 md5sum >> directory.md5或者
+[root@clientlinux test]#md5deep –rl directory_path > directory.md5
+对目录进行核实
+[root@clientlinux test]# md5sum -c directory.md5
+
+26.排序、单一与重复
+检查一个文件是否排序过
+sort –C file;
+sort –nC file检查是否按数字进行排序过
+找出文件中重复的行
+sort unsorted.txt | uniq –d
+用uniq生成字符串样式
+[root@clientlinux garen]# cat youyisi.sh 
+#!/bin/bash
+INPUT="ahebhaaa"
+OUTPUT=`echo $INPUT | sed 's/[^\n]/&\n/g' | sed '/^$/d' | sort | uniq -c | tr -d ' \n'`
+echo $OUTPUT
+sed 's/[^\n]/&\n/g'或者sed 's/[^.]/&\n/g'—表示在每个字符后追加一个换行符
+sed '/^$/d' –表示最后一个字符会被删除（因为最后一个字符会被sed替换成”字符+\n”），因此会多出一个换行符。而这个命令就用来删除这最后的空行
+tr -d ' \n'—表示将输入中的空格和换行符删除
+
+27.临时文件与随机数
+最适合存储临时数据的位置是/tmp（该目录中的内容在重启后会被清空）
+生成一个加带了随机数的文件名
+# temp_file="/tmp/file-$RANDOM"
+# echo $temp_file
+/tmp/file-14538
+temp_file=”/tmp/var.$$”—使用当前脚本的进程ID作为文件名的一部分
+
+28.分割文件和数据
+每个文件大小为10k，以split_filexxxx命名
+split –b 10k data.file –d –a 4 split_file（k,M,G,c(byte),w(word)）
+每个文件包含十行
+split –l 10 data.file
+根据指定的条件和字符串匹配选项对log文件进行分割
+csplit server.log /SERVER/ -n 2 –s {*} –f server –b “%02d.log” ; rm server00.log
+
+29.根据扩展名切分文件名
+file_jpg=”sample.jpg”
+提取文件名
+name=${file_jpg%.*}
+提取文件后缀名
+extension=${file_jpg#*.}
+将所有的.mp3文件移入给定的目录
+find path -type f -name "*.mp3" -exec mv {} target_dir \;
