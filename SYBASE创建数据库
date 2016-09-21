@@ -1,0 +1,40 @@
+use master
+go
+disk init name='hbdsfk_data', physname='/opt/sybase/data/hbdsfk_data.dat', size='10240M'
+go
+disk init name='hbdsfk_log', physname='/opt/sybase/data/hbdsfk_log.dat', size='3072M'
+go
+create database hbdsfk on hbdsfk_data = '10240M' log on hbdsfk_log = '3072M'
+go
+
+sp_addlogin  'hbdsfk', 'xxx', @defdb='hbdsfk', @deflanguage='us_english', @auth_mech = 'ANY'
+go
+
+use hbdsfk
+go
+sp_flushstats
+go
+use master
+go
+dump database hbdsfk to "compress::5::/home/sybase/hbdsfk_cmp5_20150818.dmp"
+go
+
+load database hbdsfk from "compress::5::/home/sybase/hbdsfk_cmp5_20150818.dmp"
+online database hbdsfk
+go
+
+use master
+go
+disk init name='fktest_data', physname='/opt/sybase/data/fktest_data.dat', size='10240M'
+go
+disk init name='fktest_log', physname='/opt/sybase/data/fktest_log.dat', size='3072M'
+go
+create database fktest on fktest_data = '10240M' log on fktest_log = '3072M'
+go
+
+sp_addlogin  'fktest', 'xxx', @defdb='fktest', @deflanguage='us_english', @auth_mech = 'ANY'
+go
+
+load database fktest from "compress::5::/home/sybase/hbdsfk_cmp5_20150818.dmp"
+online database fktest
+go
