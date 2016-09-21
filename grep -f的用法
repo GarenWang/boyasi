@@ -1,0 +1,19 @@
+[root@clientlinux test]# cat a.txt 
+b 210 ccc wangwu
+e 105 eee poli
+h 010 ccc wangwu
+n 002 bbb lisi
+p 001 aaa zhangsan
+s 104 ddd mazi
+x 205 eee poli
+z 204 ddd mazi
+[root@clientlinux test]# cat b.txt 
+002
+104
+105
+204
+[root@clientlinux test]# grep -f b.txt a.txt 
+e 105 eee poli
+n 002 bbb lisi
+s 104 ddd mazi
+z 204 ddd mazi
