@@ -1,0 +1,16 @@
+shiyanlou:~/ $ ps -eo pid,tid,class,rtprio,ni,pri,psr,pcpu,stat（或者ps -eF）                                                     [11:45:06]
+  PID   TID CLS RTPRIO  NI PRI PSR %CPU STAT
+    1     1 TS       -   0  19   1  0.0 Ss
+   30    30 TS       -   0  19   3  0.2 Sl
+   39    39 TS       -   0  19   0  0.0 S
+   43    43 TS       -   0  19   0  0.0 S
+   44    44 TS       -   0  19   3  0.2 S
+   46    46 TS       -   0  19   3  0.0 S
+PSR：这个就是cpu的编号
+
+
+
+top查看
+#top
+按下“f”，上下键选择“P = Last Used Cpu (SMP)”，按“Enter”，按“space”键，按“q”退出。
+会看到top界面多出一列“P”
