@@ -1,0 +1,29 @@
+远程用的IP获取：USER_IP=`who -u am i 2> /dev/null | awk '{print $NF}' | sed -e 's/[()]//g'`
+格式化输出为日期-登录用户名-远程IP: 命令的格式
+[root@clientlinux /]# PROMPT_COMMAND='date "+[ %Y%m%d-%H:%M:%S $LOGNAME from $USER_IP ]: `history 1 |cut -c 8-`"'
+[ 20151026-10:21:24 root from 148.16.34.190 ]: PROMPT_COMMAND='date "+[ 20151026-10:21:24 $LOGNAME from $USER_IP ]: `history 1 |cut -c 8-`"'
+
+将一下两行加入/etc/profile和/etc/bashrc中，然后source或者.
+USER_IP=`who -u am i 2> /dev/null | awk '{print $NF}' | sed -e 's/[()]//g'`
+PROMPT_COMMAND='date "+[ %Y%m%d-%H:%M:%S $LOGNAME from $USER_IP ]: `history 1 |cut -c 8-`" >> /var/log/command.log'
+
+然后
+chmod 777 /var/log/command.log
+
+做日志轮询
+cd /etc/logrotate.d/
+vim command
+/var/log/command.log
+{
+        prerotate
+                /usr/bin/chattr -a /var/log/command.log
+        endscript
+        compress
+        delaycompress
+        notifempty
+        rotate 100 #保留100个文件，达到100个文件之后，删除最旧的那个文件
+        size 10M
+        postrotate
+                /usr/bin/chattr +a /var/log/command.log
+        endscript
+}
