@@ -1,12 +1,22 @@
+[root@zszsjapp garen]# cat check_web.sh 
 #!/bin/bash
+#################################
+#	Date:2015-09-22 08:00    
+#	Author:Garen Wang         
+#	E-mail:wangc@itbys.com.cn
+#################################
 while read ipaddress
 do
-  wget --spider -q $ipaddress
+  (wget --spider -q -t 1 --timeout 2 $ipaddress
   if [ $? -ne 0 ]
   then
-    echo $ipaddress is down!!!!!
-  fi
-done < weburl.txt
+    echo $ipaddress is down**********
+  else
+    echo $ipaddress is running!!!
+  fi) &
+done < weburl.txt 
+
+wait
 
 
 
