@@ -1,0 +1,57 @@
+1.if语句到case语句的等价转变
+#下面这两段代码主要用来检测命令行参数，在判断条件多种的情况下case更加简洁直观
+if [ -n "$1" ]
+then
+        lines=$1
+else
+        lines=$LINES
+fi
+
+E_WRONGARGS=65
+
+case "$1" in
+"" ) lines=50;;
+*[!0-9]*) echo "Usage: `basename $0` file-to-cleanup"; exit $E_WRONGARGS;;
+*) lines=$1;;
+esac
+
+2.if语句用逻辑符号替代
+#当前情况下，逻辑符号表现的更有效率和简洁
+if [ `pwd` != "$LOG_DIR" ]
+then
+        echo "Can't change to $LOG_DIR."
+        exit $E_XCD
+fi
+
+cd /var/log || {echo "Cannot change to necessary directory." >&2;exit $E_XCD}
+
+3.用来测试被脚本所需的参数数目是否正确
+E_WRONG_ARGS=65
+script_parameters="-a -h -m -z"
+
+if [ $# -ne $Number_of_expected_args ]
+then
+echo "Usage: `basename $0` $script_parameters"
+exit $E_WRONG_ARGS
+fi
+
+4.自删除脚本
+#!/bin/rm
+# 自删除脚本.
+# 当你运行这个脚本时,基本上什么都不会发生...除非这个文件消失不见.
+WHATEVER=65
+echo "This line will never print (betcha!)."
+exit $WHATEVER
+#注：以bash filename方式运行，不会有自删除的效果。需chmod +x filename,./filename执行。
+
+5.若文件存在则cp到文件名.bak
+if [ -x "$filename" ]; then
+echo "File $filename exists."; cp $filename $filename.bak
+#else
+#echo "File $filename not found."; touch $filename
+fi
+
+6.使用参数替换来评估字符串变量
+: ${HOSTNAME?} ${USER?} ${MAIL?} #如果一个或多个必要的环境变量没有被设置的话，就打印错误信息
+[root@garen shelltest]# :${OLDPWD?} ${LOGNAME?} ${PWD?} ${WANG?}
+-bash: WANG: parameter null or not set
