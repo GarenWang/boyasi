@@ -1,9 +1,12 @@
+创建数据库设备
 use master
 go
 disk init name='hbdsfk_data', physname='/opt/sybase/data/hbdsfk_data.dat', size='10240M'
 go
 disk init name='hbdsfk_log', physname='/opt/sybase/data/hbdsfk_log.dat', size='3072M'
 go
+
+创建数据库
 create database hbdsfk on hbdsfk_data = '10240M' log on hbdsfk_log = '3072M'
 go
 
@@ -34,6 +37,26 @@ go
 
 sp_addlogin  'fktest', 'xxx', @defdb='fktest', @deflanguage='us_english', @auth_mech = 'ANY'
 go
+
+添加options
+USE master
+GO
+exec sp_dboption 'fktest', 'allow nulls by default', true
+GO
+exec sp_dboption 'fktest', 'select into/bulkcopy/pllsort', true
+GO
+exec sp_dboption 'fktest', 'trunc log on chkpt', true
+GO
+exec sp_dboption 'fktest', 'ddl in tran', true
+GO
+
+USE fktest
+GO
+checkpoint
+GO
+
+sp_helpdb可以查看
+
 
 load database fktest from "compress::5::/home/sybase/hbdsfk_cmp5_20150818.dmp"
 online database fktest
