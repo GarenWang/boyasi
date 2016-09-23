@@ -1,0 +1,19 @@
+正式风控数据(xxxx)导入测试风控数据(fktest)
+1.备份fktest的shuju
+/home/sybase/daily/dump_79_fktest.sh
+2.停用tomcat
+3.导入xxx的数据到fktest
+isql -Usa -P'xxx' -Sxxx -p -Jcp936 !!
+use master
+load database fktest from "compress::5::/opt/sybase/backup/hbdsfk_cmp5_20151111.dmp"
+online database fktest
+go
+!!
+4.启用tomcat
+
+
+在load数据库数据的时候可能出现的问题
+有其他的终端在使用数据库，解决方案：
+sp_who
+go
+查找哪些用户正在使用数据库，然后断开连接就ok了。
