@@ -1,0 +1,47 @@
+[sybase@xxxx ~]$ isql -Usa -Sxxxx -Pxxxx2015 -Dhsdb -p -w999999 -Jcp936 << EOF >> tablielist.txt
+select name from sysobjects where type='U' order by name
+go
+exit
+EOF
+
+[sybase@xxxx ~]$ cat tablelist.sh 
+(
+isql -Usa -Sxxxx -Pxxxx2015 -Dhsdb -p -w999999 -Jcp936 << EOF
+select name from sysobjects where type='U' order by name  #sybase用空格补全空白
+go
+exit
+EOF
+) > tablielist.txt
+sed -i 's/ //g' tablielist.txt
+sed -i '1,2d' tablielist.txt
+tac tablielist.txt > tabletmp.txt
+sed -i '1,3d' tabletmp.txt
+tac tabletmp.txt > tablielist.txt
+
+
+
+#!/bin/bash
+####################
+. /etc/profile
+. ~/.bash_profile
+####################
+isql -Usa -Sxxxx -Pxxxx2015 -Dhsdb -p -w999999 -Jcp936 << EOF
+sp_addlogin  'dr_look', 'dr2015xxxx', @defdb='hsdb', @deflanguage='us_english', @auth_mech = 'ANY'
+go
+sp_locklogin  'dr_look', 'unlock'
+go
+use hsdb
+go
+sp_adduser 'dr_look' , 'dr_look' , 'public'
+go
+exit
+EOF
+
+while read tablename
+do
+isql -Usa -Sxxxx -Pxxxx2015 -Dhsdb -p -w999999 -Jcp936 << EOF
+grant select on $tablename to dr_look
+go
+exit
+EOF
+done < tablelist.txt
