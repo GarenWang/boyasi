@@ -1,0 +1,10 @@
+[root@xxxx ~]# cat /etc/logrotate.d/tomcat6_1
+/opt/tomcat6_1/logs/catalina.out {
+monthly
+rotate 6 
+missingok
+dateext
+compress
+notifempty
+copytruncate
+}
