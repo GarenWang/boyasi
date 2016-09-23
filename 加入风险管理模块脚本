@@ -1,4 +1,4 @@
-[sybase@fkapp2 shelltest]$ cat insert.sh 
+[sybase@xxxx shelltest]$ cat insert.sh 
 #!/bin/bash
 ####################
 . /etc/profile
