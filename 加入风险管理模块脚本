@@ -1,0 +1,30 @@
+[sybase@fkapp2 shelltest]$ cat insert.sh 
+#!/bin/bash
+####################
+. /etc/profile
+. ~/.bash_profile
+####################
+(
+isql -Umhman -P'xxxxx' -Sp9ca4db -p -w99999 -Jcp936 << EOF
+SELECT t.C_USER_ACCOUNTS FROM hbqxgl.dbo.T_USER t where t.C_USED_FLAG='1'
+go
+exit
+EOF
+) > useridlist.txt 
+sed -i 's/ //g' useridlist.txt
+sed -i '1,3d' useridlist.txt
+tac useridlist.txt > tabletmp.txt
+sed -i '1,3d' tabletmp.txt
+tac tabletmp.txt > useridlist.txt
+rm -rf tabletmp.txt
+
+
+while read user_id
+do
+(isql -Umhman -P'xxxx' -Sp9ca4db -p -w99999 -Jcp936 << EOF
+INSERT INTO TB_USER_GROUP_ROLE VALUES ('$user_id','user','20150922180503')
+go
+exit
+EOF
+) 2> /dev/null
+done < useridlist.txt
