@@ -1,0 +1,39 @@
+[root@zszsjapp garen]# cat restart_tomcat.sh
+#!/bin/bash
+#################################
+#       Date:2015-09-22 08:00    
+#       Author:Garen Wang         
+#       E-mail:wangc@itbys.com.cn
+#################################
+#stop--remove localhost/* --start tomcat
+Basedir=/opt/tomcat6_test/bin
+TargetDirectory=/opt/tomcat6_test/work/Catalina/localhost
+LogDirFile=/home/garen/error_g.log
+DoNothing=95
+Date=`date`
+
+action() {
+cd $Basedir
+echo "$Date Stopping tomcat... in ${Basedir}" >> $LogDirFile
+/bin/sh shutdown.sh >> $LogDirFile 2>&1
+
+cd $TargetDirectory
+echo "$Date remove files in ${TargetDirectory}" >> $LogDirFile
+ls  | awk '{print "rm -rf " $1}' | cat >> $LogDirFile
+rm -rf *
+ 
+cd $Basedir
+echo "$Date Starting tomcat... in ${Basedir}" >> $LogDirFile
+/bin/sh startup.sh >> $LogDirFile 2>&1
+}
+
+echo -n "Restarting tomcat...? (Yes/No): "
+read YN
+case "$YN" in
+	[Yy]|[Yy][Ee][Ss])
+	action	
+	;;
+	*)
+	exit $DoNothing 
+	;;
+esac
