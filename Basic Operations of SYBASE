@@ -63,3 +63,6 @@ go
  fktest                         
 
 (1 row affected)
+
+查看数据空间使用情况，单位（页）,大小4k
+sp_helpsegment 'default'
