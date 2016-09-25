@@ -78,3 +78,8 @@ License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 
 This is free software; you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
+
+
+
+grep的精确匹配，包含且只包含“$userid”的那一行，将被打印
+grep -w "$userid" youuserid.txt &> /dev/null  && echo "$userid"
