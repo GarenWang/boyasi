@@ -1,0 +1,22 @@
+20151014
+取消clear.sh的计划任务或者注释掉其中的"rm -rf"语句
+
+
+创建目录：
+# mkdir -p /home/sybase/daily/log
+# ll /home/sybase/daily/log/
+总用量 0
+# mkdir /home/sybase/monthly
+# ll /home/sybase/monthly/
+总用量 0
+# mkdir -p /opt/sybase/backup/del
+# ll /opt/sybase/backup/del/
+总用量 0
+
+
+测试脚本的操作顺序：
+date -s 20150101 #时间随意设置
+./tc_files.sh
+./clear.sh
+
+重复。。。
