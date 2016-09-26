@@ -55,3 +55,1801 @@ fi
 : ${HOSTNAME?} ${USER?} ${MAIL?} #如果一个或多个必要的环境变量没有被设置的话，就打印错误信息
 [root@garen shelltest]# :${OLDPWD?} ${LOGNAME?} ${PWD?} ${WANG?}
 -bash: WANG: parameter null or not set
+
+7.cp tmpfile.{txt,bak} #复制tmpfile.txt到tmpfile.bak文件中
+
+8.查询rpm包是否可以安装，并将查询结果保存到文件中
+#!/bin/bash
+#rpm-check.sh
+success=0
+e_noargs=65
+if [ -z "$1" ]
+then
+	echo "Usage: `basename $0` rpm-file"
+	exit $e_noargs
+fi
+{
+echo
+echo "Archive Description:"
+rpm -qpi $1
+echo
+echo "Archive Listing:"
+rpm -qpl $1
+echo
+rpm -i --test $1
+if [ "$?" -eq $success ]
+then
+	echo "$1 can be installed."
+else
+	echo "$1 cannot be installed."
+fi
+echo
+} > "/home/garen/test/$1.test"
+echo "Results of rpm test in file /home/garen/test/$1.test"
+exit 0
+
+9.提示是否要进行（y/n）
+echo -n "Do you want to remove these dirs/files? (Yes/No): "
+read YN
+#这里可以换成更加优雅的写法：read -p "Do you want to remove these dirs/files? (Yes/No): " YN
+case "$YN" in
+	[Yy]|[Yy][Ee][Ss])
+	rm -rf *
+	;;
+	*)
+	exit 95
+	;;
+esac
+
+10.在后台运行一个循环
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+	echo -n "$i "
+	sleep 1
+done&
+
+11.解决一个脚本内后台运行一个命令，有可能造成这个脚本挂起的问题
+# cat tmpfile.sh 
+exec nohup ping 148.16.34.191 &
+
+12.从一个目录移动整个目录树到另一个目录
+(cd /home/garen/vmware-tools-distrib/ && tar cf - .)|(cd /home/garen/vmware-tools-distrib-test/ && tar xpvf -)
+更加优雅的写法：
+cd /home/garen/vmware-tools-distrib/
+tar cf - . |(cd /home/garen/vmware-tools-distrib-test/ && tar xpvf -)
+远程管道
+(cd /home/garen/vmware-tools-distrib/ && tar cf - .)|(ssh 148.16.34.180 "cd /home/garen/vmware-test && tar xpvf -")
+
+13.bunzip2 linux-2.6.13.tar.bz2 | tar xvf - #解档kernel原文件
+echo "whatever" | cat  -n -
+     1	whatever
+
+14.备份文件，如果没有给定文件名，使用默认的文件名
+#!/bin/bash
+BACKUPFILE=backup-$(date +%m-%d-%Y)
+archive=${1:-$BACKUPFILE}
+tar cvf - `find .-mtime -1 -type f -print` > $archive.tar
+# 如果在发现太多的文件的时候,或者是如果文件
+# 名包括空格的时候,将执行失败.
+# 建议使用以下代码
+# -------------------------------------------------------------------
+# find . -mtime -1 -type f -print0 | xargs -0 tar rvf "$archive.tar"
+# 使用gnu 版本的find.
+# find . -mtime -1 -type f -exec tar rvf "$archive.tar" '{}' \; #这里-c和-r感觉没什么区别
+# 对于其他风格的UNIX 便于移植,但是比较慢.
+# -------------------------------------------------------------------
+gzip $archive.tar
+echo "Directory $PWD backed up in archive file \"$archive.tar.gz\"."
+exit 0
+
+15.如果在调用时没有用这个位置参数，也不会因为分配一个空变量而引起问题.
+variable1_=$1_ # 而不是 variable1=$1
+variable_=garen_
+variable=${variable_/_/}
+#echo $variable
+garen
+
+16.参数替换的更好的方法
+${1:$DefaultVal}
+
+17.shift的用法
+until [ -z "$1" ]
+do
+	echo -n "$1"
+	shift
+done
+echo
+exit 0
+
+18.读取一个文件的各行，方法一
+#!/bin/bash
+exec 0<$1
+counter=1
+while read line; do
+        echo "$counter: $line"
+        $((counter++))
+done
+#这个脚本在执行的时候需要这样,bash tmptest.sh /etc/passwd 2> /dev/null --解决办法如下
+将echo "$counter: $line"改为echo "$((counter++)): $line"
+
+19.利用grep找到一个单词中的几个字母
+[root@clientlinux test]# echo linux | grep -q inu
+[root@clientlinux test]# echo linux | grep  inu
+linux
+[root@clientlinux test]# grep inu linux
+grep: linux: No such file or directory
+
+20.check一个目录中的死链接文件（即原文件不存在，但是链接文件依然存在）
+#一个小测试，这个例子说明了，-e参数作用于链接文件的时候，直接判断链接文件的原文件是否存在
+lrwxrwxrwx 1 root root        3 Oct 27 10:19 tmplns -> tmp
+[root@clientlinux test]# [ -e tmplns ] && echo "a" || echo "b"
+b
+[root@clientlinux test]# touch tmp
+[root@clientlinux test]# [ -e tmplns ] && echo "a" || echo "b"
+a
+#然后下面是一个检测的脚本
+[root@clientlinux test]# cat tmptest.sh 
+#!/bin/bash
+#broken-link.sh
+[ $# -eq 0 ]&& directorys=`pwd` || directorys=$@
+
+linkchk(){
+	for element in $1/*;do
+	[ -h "$element" -a ! -e "$element" ] && echo \"$element\" #-h判断是否为链接文件且是否存在
+	[ -d "$element" ] && linkchk $element
+	done
+}
+
+for directory in $directorys;do
+	if [ -d $directory ]
+	then linkchk $directory
+	else
+		echo "$direcotry is not a directory"
+		echo "Usage:$0 dir1 dir2..."
+	fi
+done
+
+exit 0
+#一个真正有用的shell 脚本来找出死链接文件并且输出它们的引用
+#以便于它们可以被输入到xargs 命令中进行处理 :
+#eg: broken-link.sh /somedir /someotherdir|xargs rm
+
+21.判断最大公约数的算法（最大公约数是指两个证书能够同时整除的最大的数）
+#!/bin/bash
+args=2
+e_badargs=65
+if [ $# -ne "$args" ]
+then
+	echo "Usage: `basename $0` first-number second-number"
+	exit $e_badargs
+fi
+gcd()
+{
+	dividend=$1
+	divisor=$2
+	
+	remainder=1
+
+	until [ "$remainder" -eq 0 ]
+	do
+		let "remainder = $dividend % $divisor"
+		dividend=$divisor
+		divisor=$remainder
+	done
+}
+ccd() #判断一个数是否是整数
+{
+for tmp in $*
+do
+	if echo $tmp | grep -E [^0-9] > /dev/null 
+	then
+		echo "$tmp not integer" 
+		flag=1
+	fi
+done
+[ "$flag" = 1 ] && exit $e_badargs
+}
+ccd $*
+gcd $1 $2
+echo;echo "GCD of $1 and $2 = $dividend"; echo
+exit 0
+
+22.bash shell下n+1的10种表示方法
+#!/bin/bash
+n=1; echo -n "$n "
+let "n = $n + 1" # let "n = n + 1" 这么写也行
+echo -n "$n "
+: $((n = $n + 1))
+# ":" 是必须的,这是因为,如果没有":"的话,Bash 将
+#+ 尝试把"$((n = $n + 1))"解释成一个命令
+echo -n "$n "
+(( n = n + 1 ))
+echo -n "$n "
+n=$(($n + 1))
+echo -n "$n "
+: $[ n = $n + 1 ]
+echo -n "$n "
+n=$[ $n + 1 ]
+# 即使"n"被初始化成为一个字符串,这句也能工作.
+#* Avoid this type of construct, since it is obsolete and nonportable.
+#* 尽量避免这种类型的结果,因为这已经被废弃了,并且不具可移植性.
+# Thanks, Stephane Chazelas.
+echo -n "$n "
+# 现在来个C 风格的增量操作.
+let "n++" # let "++n" also works.
+echo -n "$n "
+(( n++ )) # (( ++n ) also works.
+echo -n "$n "
+: $(( n++ )) # : $(( ++n )) also works.
+echo -n "$n "
+: $[ n++ ] # : $[ ++n ]] also works
+echo -n "$n "
+echo
+exit 0
+
+23.bash的64位最大正整数值，最小负整数值之间的转换
+[root@clientlinux test]# a=9223372036854775808
+[root@clientlinux test]# let "a+=1"
+[root@clientlinux test]# echo "a=$a"
+a=-9223372036854775807
+
+24.逗号操作符
+let "t2 = ((a = 9, 15 / 3))" # Set "a" and calculate "t2".
+echo "t2 = $t2 a = $a" # t2 = 5 a = 9
+
+25.判断系统上运行的哪个版本的shell，$SHELL并不总能给出正确的结果
+[root@clientlinux]# echo $BASH_VERSION
+4.1.2(1)-release
+
+26.查看主机类型（32或64位）、查看系统类型和版本号、查看主机类型和系统名称、查看操作系统位数
+#查看主机位数
+[root@clientlinux test]# echo $HOSTTYPE
+x86_64
+[root@clientlinux test]# arch
+x86_64
+#查看操作系统名称和版本
+[root@clientlinux test]# cat /etc/issue
+Red Hat Enterprise Linux Server release 6.5 (Santiago)
+Kernel \r on an \m
+#查看内核版本
+[root@clientlinux test]# uname -r
+2.6.32-431.el6.x86_64
+#查看主机类型和系统名称
+[root@clientlinux test]# echo $MACHTYPE
+x86_64-redhat-linux-gnu
+#查看操作系统位数
+[root@clientlinux test]# getconf LONG_BIT
+64
+
+27.记录在shell脚本中的行号，做调试用
+[root@clientlinux test]# cat tmptest
+#!/bin/bash
+last_cmd_arg=$_ #$_表示the "last arguement of the last command executed."
+echo "At line number $LINENO,variable \"v1\"=$1"
+echo "Last command argument processed = $last_cmd_arg"
+[root@clientlinux test]# ./tmptest hello
+At line number 4,variable "v1"=hello
+Last command argument processed = ./tmptest
+#$_的一种非常酷的用法
+[root@clientlinux test]# ll tmp
+---------- 1 garen garen 0 Oct 27  2015 tmp
+[root@clientlinux test]# chown root:root tmp && chmod 755 $_
+[root@clientlinux test]# ll tmp
+-rwxr-xr-x 1 root root 0 Oct 27  2015 tmp
+
+28.处理linux系统中的包含有空白符的文件或目录名
+find /home -size +1M -print0 | xargs -0 ls -l
+
+29.判断是否是当前目录
+TargetDirectory=/opt/tomcat6_test/work/Catalina/localhost
+cd $TargetDirectory
+echo "Deleting all files in $TargetDirectory."
+if [ "$PWD" != "$TargetDirectory" ]
+then
+	echo "Wrong directory!"
+	echo "In $PWD, rather than $TargetDirectory!"
+	echo "Bailing out!"
+exit $E_WRONG_DIRECTORY
+fi
+
+30.删除隐藏文件和以多个“.”开头的文件
+rm -f .[^.]* ..?*
+
+31.记录脚本运行的时间（单位为秒）--$SECONDS
+
+32.设置超时操作
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+TMOUT=3
+echo "What is your favorite song?"
+echo "Quickly now, you only have $TMOUT seconds to answer!"
+read song
+if [ -z "$song" ]
+then
+	song="(no answer)"
+fi
+echo "Your favorite song is $song."
+#简单的用read实现就是
+read -t $TIMELIMIT variable
+
+33.未""引用的$*把参数作为独立的单词
+
+34.set a b c #设置位置参数为a b c
+
+35.possibly_hanging_job & { sleep ${TIMEOUT}; eval 'kill -9 $!' &> /dev/null; } #强制结束
+#一个后台进程
+
+36.利用修改文件名来改变文件格式
+OPERATION=macptopbm
+SUFFIX=pbm
+for file in $directory/*
+do
+filename=${file%.*c}
+$OPERATION $file > "$filename.$SUFFIX"
+rm -f $file
+done
+
+37.${parameter-default},${parameter:-default} #如果parameter没有被set，那么就使用default
+":"在parameter 被声明的时候(而且被赋空值),会有一些不同，严格来说就是，在parameter被赋值为空时，
+-不会将default赋值给parameter
+filename=${1:-$DEFAULT_FILENAME} #如果脚本中并没有传入命令行参数，那么default parameter将被使用
+${parameter+alt_value},${parameter:+alt_value} #如果parameter被set了，那就使用alt_value，否则
+#使用null字符串。
+${parameter?err_msg}, ${parameter:?err_msg} #如果parameter被set，就使用set的值，都则，print 
+#errormsg
+
+38.批量重命名文件扩展名
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+E_BADARGS=65
+case $# in
+	0|1)
+	echo "Usage: `basename $0` old_file_suffix new_file_suffix"
+	exit $E_BADARGS
+	;;
+esac
+for filename in *.$1
+do
+	mv $filename ${filename%$1}$2
+done
+exit 0
+
+39.command not found #如果在一个非交互脚本中,$parameter 为空的话,那么这个脚本将以127 返回.
+#(127退出码对应的Bash 错误码为"command not found").
+
+40.间接引用
+eval echo \$$t
+
+41.随机数--$RANDOM,head -1 /dev/urandom | od -N 1
+#或者使用awk产生随机数
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+awkscript='{ srand(); print rand()}'
+echo -n "Random number between 0 and 1 = "
+echo | awk "$awkscript"
+exit 0
+
+42.for循环中的$1和$2变量
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+for planet in "Mercury 36" "Venus 67" "Earth 93" "Mars 142" "Jupiter 483"
+do
+	set -- $planet
+	
+	echo "$1    $2,000,000 miles from the sun"
+done
+exit 0
+[root@clientlinux test]# tmptest 
+Mercury    36,000,000 miles from the sun
+Venus    67,000,000 miles from the sun
+Earth    93,000,000 miles from the sun
+Mars    142,000,000 miles from the sun
+Jupiter    483,000,000 miles from the sun
+
+43.判断文件是否存在，若存在则输出“文件不存在”，然后继续
+if [ ! -e "$file" ]
+	then
+		echo "$file does not exist."; echo
+		continue
+fi
+
+44.自带的循环操作
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+for a
+do
+	echo -n "$a"
+done
+exit 0
+
+45.找到已经删除的用户，确还有残留的文件或目录并删除
+[root@clientlinux test]# find /home -xdev -nouser | xargs rm -rf
+
+46.stirngs列出二进制文档中可以打印出的字符
+strings filename #strings /bin/ls
+
+47.for word in $(strings "$2" | grep "$1" | tr -s "$IFS" '[\n*]')#以换行符为定界符打印匹配到
+的字符串，
+
+48.awk 小技巧for name in $(awk 'BEGIN{FS=":"}{print $1}' < "$password_file")
+
+49.strings -f显示文件名字
+for file in $( find $directory -type f -name '*' | sort )
+do
+strings -f $file | grep "$fstring" | sed -e "s%$directory%%"
+# 在"sed"表达式中,
+#+ 我们必须替换掉正常的替换分隔符"/",
+#+ 因为"/"碰巧是我们需要过滤的字串之一.
+done
+
+50.列出目录中的所有符号链接文件 for循环的输出也可以通过管道传递到一个或多个命令中
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+# symlinks.sh: 列出目录中所有的符号连接文件.
+directory=${1-`pwd`}
+# 如果没有其他的特殊指定,
+#+ 默认为当前工作目录.
+# 下边的代码块,和上边这句等价.
+# ----------------------------------------------------------
+# ARGS=1 # 需要一个命令行参数.
+#
+# if [ $# -ne "$ARGS" ] # 如果不是一个参数的话...
+# then
+# directory=`pwd` # 当前工作目录
+# else
+# directory=$1
+# fi
+# ----------------------------------------------------------
+echo "symbolic links in directory \"$directory\""
+for file in "$( find $directory -type l )" # -type l 就是符号连接文件
+do
+echo "$file"
+done | sort # 否则列出的文件将是未排序的
+# 严格上说,此处并不一定非要一个循环不可,
+#+ 因为"find"命令的结果将被扩展成一个单词.
+# 然而,这种方式很容易理解和说明.
+# Dominik 'Aeneas' Schnitzer 指出,
+#+ 如果没将 $( find $directory -type l )用""引用起来的话
+#+ 那么将会把一个带有空白部分的文件名拆成以空白分隔的两部分(文件名中允许有空白).
+# 即使这只将取出每个参数的第一个域.
+exit 0
+# Jean Helou 建议使用下边的方法:
+echo "symbolic links in directory \"$directory\""
+# 当前IFS 的备份.要小心使用这个值.
+OLDIFS=$IFS
+IFS=:
+for file in $(find $directory -type l -printf "%p$IFS")
+do # ^^^^^^^^^^^^^^^^
+echo "$file"
+done|sort
+
+51.一个 while 循环可以有多个判断条件,但是只有最后一个才能决定是否退出循环.然而这需
+要一种有点不同的循环语法.
+while echo "previous-variable = $previous"
+echo
+previous=$var1
+[ "$var1" != end ] # 记录之前的$var1.
+# 这个"while"循环中有4 个条件, 但是只有最后一个能控制循环.
+# 退出状态由第4 个条件决定.
+do
+echo "Input variable #1 (end to exit) "
+read var1
+echo "variable #1 = $var1"
+done
+
+52.break 命令可以带一个参数.一个不带参数的break 循环只能退出最内层的循环,而break N
+可以退出 N 层循环.
+continue 命令也可以带一个参数.一个不带参数的continue 命令只去掉本次循环的剩余代码
+.而continue N 将会把N 层循环剩余的代码都去掉,但是循环的次数不变.
+
+53.使用纯bash轮询tomcat的catalina.out日志
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+cd `dirname $0`
+d=`date +%Y%m%d`
+cd ../logs/
+tar -czvf catalina.out.${d}.tgz catalina.out &> /dev/null && echo "" > catalina.out
+
+54.*[!0-9]* #所有不是完整整数字符串的字串
+*[!a-zA-Z]* #所有不是完整字母字符串的字串
+
+55.使用select创建菜单
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+PS3='choose your favorite vegetable: '
+echo
+select vegetable in "beans" "carrots" "potatoes" "onions" "rutabagas"
+do
+	echo
+	echo "Your favorite beggie is $vegetable."
+	echo "Yuck!"
+	echo
+	break
+done
+exit 0
+[root@clientlinux test]# tmptest 
+1) beans
+2) carrots
+3) potatoes
+4) onions
+5) rutabagas
+choose your favorite vegetable: 1
+Your favorite beggie is beans.
+Yuck!
+
+56.使用一个格式化字符串来加载一个变量
+Pi12=$(printf "%1.12f" $PI)
+echo "Pi to 12 decimal places = $Pi12"
+Msg=`printf "%s %s \n" $Message1 $Message2`
+echo $Msg; echo $Msg
+输出：
+Pi to 12 decimal places = 3.141592653590
+Greetings, Earthling.
+Greetings, Earthling.
+
+57.一个不带参数的read命令，将把来自键盘的输入存入到专用变量$REPLY中
+echo -n "Enter another value: "
+read
+var="$REPLY"
+echo "\"var\" = "$var""
+
+58.read不按回车，读取一个按键字符
+read -s -n1 -p "Hit a key" keypress
+-s 选项意味着不打印输入.
+-n N 选项意味着直接受N 个字符的输入.
+-p 选项意味着在读取输入之前打印出后边的提示符
+
+59.while read的真面目
+while IFS=: read name passwd uid gid fullname ignore
+do
+echo "$name ($fullname)"
+done </etc/passwd # I/O 重定向.
+echo "\$IFS still $IFS"
+cat file1 file2管道到while read #使用echo会失败
+cat testtxt.001 tmptest | while read line; do echo $line; done
+
+60.打印脚本自身
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+last="(null)"
+cat $0 | 
+while read line
+do
+	echo "{$line}"
+	last=$line
+done
+printf "\nAll done, last:$last\n"
+exit 0
+
+61.popd pushd dirs,需要记住的是，最底下的目录是当前目录
+
+62.eval的正确用法
+for i in ls df; do
+value=eval $i
+# value=$i has an entirely different effect here.
+# value=$i 在这里就与上边这句有了本质上的区别.
+# "eval" 将会评估命令 "ls" 和 "df" . . .
+# 术语 "ls" 和 "df" 就具有特殊含义,
+#+ 因为它们被解释成命令,
+#+ 而不是字符串本身.
+echo $value
+done
+
+63.根据名字找到文件
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+ROOT_UID=0
+E_NOTROOT=65
+E_NOPARAMS=66
+if [ "$UID" -ne "$ROOT_UID" ]
+then
+echo "Must be root to run this script."
+exit $E_NOTROOT
+fi
+if [ -z "$1" ]
+then
+echo "Usage: `basename $0` find-string"
+exit $E_NOPARAMS
+fi
+echo "Updating 'locate' database..."
+echo "This may take a while."
+updatedb /usr &
+wait
+locate $1
+exit 0
+
+64.将du的输出按文件大小排序（一条语句实现）
+适用于所有sort版本（两次du，对磁盘伤害大）
+du -sx * | sort -nk 1 | awk '{print $2}' | xargs du -shx
+适用于sort高版本（最优解，但是要求高）du -sx * | sort -h
+脚本实现（比较麻烦，但是对磁盘伤害小）
+sdu () {
+  du -sk $@ | sort -n | awk '
+BEGIN {
+  split("K,M,G,T", Units, ",");
+  FS="\t";
+  OFS="\t";
+}
+{
+  u = 1;
+  while ($1 >= 1024) {
+    $1 = $1 / 1024;
+    u += 1
+  }
+  $1 = sprintf("%.1f%s", $1, Units[u]);
+  sub(/\.0/, "", $1);
+  print $0;
+}'
+}
+
+65.cp -u source_dir/* dest_dir #把源目录“同步”到目标目录上，也就是拷贝所有更新的文件和
+#之前不存在的文件
+
+66.在/etc目录中的文件找到多有包含IP地址的文件
+find /etc -type f -exec cat '{}' \; | tr -c '.[:digit:]' '\n' | 
+grep '^[^.][^.]*\.[^.][^.]*\.[^.][^.]*\.[^.][^.]*$'
+
+67.删除当前目录下文件名中包含些特殊字符（包括空格）的文件
+find . -name '*[+{;"\\=?~()<>&*|$ ]*' -exec rm -f '{}' \;
+
+68.根据inode值来删除特殊文件名的文件
+inum=`ls -i | grep "$1" | awk '{print $1}'`
+find . -inum $inum -exec rm {} \;
+
+69.使用gzips压缩当前目录下的每个文件，一次压缩一个，并且在每次压缩前都提示用户
+ls | xargs -p -l gzip
+#以每行8列的形式列出当前目录下的所有文件
+ls | xargs -n 8 echo
+#另一个有用的选项是-0，使用find -print0或者grep -lZ允许处理包含空白或引号的参数
+find / -type f -print0 | xargs -0 grep -liwZ GUI | xargs -0 rm -f
+
+70.删除文件中的单引号和双引号
+tr -d "\"'"
+
+71.一般建议给/var目录单独分区
+
+72.cat "$1" | xargs -n1 | tr A-Z a-z | sed -e 's/\.//g' -e 's/\,//g' -e 's/ /\
+/g' | sort | uniq -c | sort -nr
+
+73.显示今天是本年度的第几天
+date +%j
+显示当前小时数和分钟数#一天有86400
+date +%k%M #%k表示当前小时数，%M表示当前分钟数（8：56那么输出856）
+
+74.cut指定换行符作为字段定界符
+cut -d'
+' -f3,7,19 testfile
+
+75.paste将多个文件，以每个文件一列的形式合并到一个文件中，合并后的文件每列就是原来的一个文件。
+join命令能够合并2个文件，这种特殊的形式本质上是一个关联数据库的简单版本
+File: 1.data
+100 Shoes
+200 Laces
+300 Socks
+
+File: 2.data
+100 $40.00
+200 $1.00
+300 $2.00
+bash# join 1.data 2.data
+File: 1.data 2.data
+100 Shoes $40.00
+200 Laces $1.00
+300 Socks $2.00
+
+76.产生10进制随机数
+bash#head -c4 /dev/urandom | od -An4 -tu4
+
+77.打印一个文件的指定范围内的文本
+var=$(head -$m $filename | tail -$n) #m指定下限，n控制上限。例如要打印5-8行，m=8，n=4
+
+78.grep -l用来指定仅列出匹配的文件，而不列出匹配行。
+-r不仅在当前工作目录搜索匹配，而且搜索子目录
+-n选项列出所有匹配行，并显示行号
+
+79.当有多个文件参数的时候，grep将会指出包含内容的具体文件名
+bash$ grep Linux osinfo.txt /dev/null
+osinfo.txt:This is a file containing information about Linux.
+osinfo.txt:The GPL governs the distribution of the Linux operating system.
+if grep -q "$word" "$filename"
+then
+	echo "$word found in $filename"
+else
+	echo "$word not found in $filename"
+fi
+
+搜索压缩文件使用
+zgrep,zegrep或zfgrep.如果要搜索bzipped类型的文件，使用bzgrep
+
+80.宽度超过40行的，按折行输出
+echo $b | fmt -w $width
+
+81.以易于打印的形式输出-- column -t
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+(printf "PERMISSIONS LINKS OWNER GROUP SIZE MONTH DAY HH:MM PROG-NAME\n" \
+; ls -l | sed 1d) | column -t
+exit 0
+
+82.使用cpio来拷贝一个目录树
+find "$source" -depth | cpio -admvp "$destination"
+
+83.使用rpm查询软件包的所有其他依赖包
+rpm --query --whatrequires openssh
+
+84.UNIX&LINUX系统管理技术手册推荐的备份方法
+在~/.bash_profile或者~/.profile文件里加一小段类似下面的脚本代码，
+function backup() {
+	newname=$.`date +%Y%m%d.%H%M.bak`
+	mv $1 $newname
+	echo "Backed up $1 to $newname."
+	cp -p $newname $1
+}
+#backup hello.py
+
+85.检测与执行灾难性命令
+ls /home/garen/ | awk '{print "rm -rf " $1}' | more（这里还可以使用less/cat）
+ls /home/garen/ | awk '{print "rm -rf " $1}' | sh #这句是执行之前的语句
+
+86.获得一份股票报价
+#!/bin/bash
+#quote-fetch.sh: 下载一份股票报价.
+E_NOPARAMS=66
+if [ -z "$1" ]
+then echo "Usage: `basename $0` stock-symbol"
+exit $E_NOPARAMS
+fi
+stock_symbol=$1
+file_suffix=.html
+URL='http://finance.yahoo.com/q?s='
+wget -O ${stock_symbol}${file_suffix} "${URL}${stock_symbol}"
+exit $?
+
+87.发送邮件的命令
+cat $0 | mail -s "Script \"`basename $0`\" has mailed itself to you." "$adr"
+
+88.计算脚本中的变量
+variable=$(echo "OPTIONS; OPERATIONS" | bc)
+
+89.使用here document来操作bc
+variable=`bc << LIMIT_STRING
+options
+statements
+operations
+LIMIT_STRING
+`
+variable=$(bc << LIMIT_STRING
+options
+statements
+operations
+LIMIT_STRING
+)
+
+90.ftp删除文件操作
+准备工作
+--anon_other_write_enable=YES
+--文件具有允许删除的权限
+主要操作
+# lftp 148.16.23.79 << EOF
+> cd pub
+> mrm *
+> EOF
+
+91.run-parts命令将会执行目标目录中的所有的脚本，这些脚本会以ASCII的顺序进行排列。
+
+92.yes的奇妙用法
+yes | fsck /dev/hda1 将会以非交互的形式运行 fsck(因为需要用户输入的 y 全由 yes 
+命令搞定了)(小心使用!). 
+yes | rm -r dirname 与 rm -rf dirname 效果相同(小心使用!). 
+注意: 当用 yes 的管道形式来使用一些可能具有潜在危险的系统命令的时候一定要深思 
+熟虑, 比如 fsck 或 fdisk. 可能会产生一些意外的副作用. 
+
+93.显示编译后的2进制文件或2进制可执行文件的信息，以16进制的形式显示，或者显示反汇编列表（-d）
+objdump 
+
+94.显示当前用户终端的名字. 注意每一个单独的 xterm 窗口都被算作一个不同的终端. 
+tty
+
+95.nmap $SERVER | grep -w "$PORT_NUMBER"
+#grep -w匹配整个单词，这样就不会匹配类似于1025这种只含有25的端口了。
+
+96.pidof -x $0 #显示当前运行脚本的pid，但是pidof $0是不行的。
+
+97.fuser取得一个正在存取某个或某些文件（或目录）的进程ID。-k选项将会杀掉这些进程。
+ bash$ umount /mnt/usbdrive 
+ umount: /mnt/usbdrive: device is busy 
+ bash$ fuser -um /dev/usbdrive 
+ /mnt/usbdrive:        1772c(bozo)
+ bash$ kill -9 1772 
+ bash$ umount /mnt/usbdrive
+fuser的-n选项可以获得正在存取某一端口的进程id，
+ root# nmap localhost.localdomain 
+ PORT     STATE SERVICE 
+ 25/tcp   open  smtp 
+ root# fuser -un tcp 25 
+ 25/tcp:               2095(root) 
+ root# ps ax | grep 2095 | grep -v grep 
+ 2095 ?        Ss     0:00 sendmail: accepting connections 
+
+98.xargs rm -- < filename #这种方式可以避免产生“参数列表太长”的错误
+
+99.命令替换甚至允许将整个文件的内容放到变量中，可以使用重定向或者cat命令。
+variable1=`<file1` #将“file1”的内容放到“variable1”中
+variable2=`cat file2` #将“file2”的内容放到“variable2”中，这一行会产生一个新的进程，所以执行慢
+
+100.在一个变量声明中，嵌入一个循环是可行的
+variable1=`for i in 1 2 3 4 5 
+do 
+  echo -n "$i"
+done`
+
+variable2=`while [ "$i" -lt 10 ] 
+do 
+  echo -n "$i"
+  let "i += 1" 
+done` 18
+
+101.在bash中调用C语言代码
+[root@clientlinux test]# cat hello.c 
+#include<stdio.h>
+int main()
+{
+	printf("Hello,world.");
+	return (0);
+}
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+greeting=`./hello`
+echo $greeting
+[root@clientlinux test]# gcc -o hello hello.c
+[root@clientlinux test]# tmptest 
+Hello,world.
+
+102.[j]<>filename #为了读写“filename”，把文件“filename”打开，并且分配文件描述符“j”给它
+exec 3<> File             # 打开"File"并且给它分配 fd 3. 
+read -n 4 <&3             # 只读 4 个字符. 
+echo -n . >&3             # 写一个小数点. 
+exec 3>&-                 # 关闭 fd 3.
+
+103.合并文件夹，不改变原有目录结构
+[root@clientlinux patch_dir]# yes | cp -frp 1202/* 1203/* 1123/
+
+104.rsync的基本用法
+rsync -av --delete $SRC/ $TARRGET
+
+105.使用ex scripts，把所有后缀为“*.txt”文件中的“Smith”都替换成“Jones”。
+#!/bin/bash 
+#  把所有后缀为".txt"文件 
+#+ 中的"Smith"都替换成"Jones". 
+ORIGINAL=Smith 
+REPLACEMENT=Jones 
+for word in $(fgrep -l $ORIGINAL *.txt) 
+do 
+  ex $word << EOF 
+  :%s/$ORIGINAL/$REPLACEMENT/g 
+  :wq
+EOF
+# :%s 是"ex"的替换命令. 
+done
+exit 0
+
+106.带有抑制tab功能的多行消息
+#!/bin/bash
+#  - 选项对于 here docutment 来说,<<- 
+#+ 可以抑制文档体前边的 tab
+cat <<-ENDOFMESSAGE 
+ This is line 1 of the message. 
+ This is line 2 of the message. 
+ This is line 3 of the message. 
+ This is line 4 of the message. 
+ This is the last line of the message. 
+ENDOFMESSAGE
+# 脚本在输出的时候左边将被刷掉. 
+# 就是说每行前边的 tab 将不会显示. 
+# 上边 5 行"消息"的前边都是 tab, 不是空格. 
+# 空格是不受<<-影响的. 
+# 注意, 这个选项对于*嵌在*中间的 tab 没作用. 
+exit 0
+
+107.heredocuments里面的“#”后的字符不会被注释
+
+108.使用heredocuments，登录ftp并上传文件的方法
+#!/bin/bash 
+# upload.sh 
+#  上传文件对(Filename.lsm, Filename.tar.gz) 
+#+ 到 Sunsite/UNC (ibiblio.org)的 incoming 目录. 
+E_ARGERROR=65 
+if [ -z "$1" ]  
+then 
+  echo "Usage: `basename $0` Filename-to-upload" 
+  exit $E_ARGERROR 
+fi      
+Filename=`basename $1`           # 从文件名中去掉目录字符串. 
+Server="ibiblio.org" 
+Directory="/incoming/Linux" 
+Password="your.e-mail.address"   # 可以修改成相匹配的密码. 
+ftp -n $Server <<End-Of-Session 
+# -n 选项禁用自动登录. 
+user anonymous "$Password" 
+binary 
+bell                             # 在每个文件传输后, 响铃. 
+cd $Directory 
+put "$Filename.lsm" 
+put "$Filename.tar.gz" 
+bye 
+End-Of-Session
+exit 0
+
+109.heredocuments禁用参数替换的几种方式
+cat <<'ENDOFMESSAGE'
+ENDOFMESSAGE
+cat <<"ENDOFMESSAGE""
+ENDOFMESSAGE
+cat <<\ENDOFMESSAGE
+ENDOFMESSAGE
+
+110.使用一个产生另外一个脚本的脚本
+( 
+cat <<'EOF' 
+#!/bin/bash 
+ 
+echo "This is a generated shell script." 
+#  Note that since we are inside a subshell, 
+#+ we can't access variables in the "outside" script. 
+ 
+echo "Generated file will be named: $OUTFILE" 
+#  Above line will not work as normally expected 
+#+ because parameter expansion has been disabled. 
+#  Instead, the result is literal output. 
+ 
+a=7 
+b=3 
+ 
+let "c = $a * $b" 
+echo "c = $c" 
+ 
+exit 0
+EOF
+) > $OUTFILE
+
+111.将here document的输出保存到变量中
+variable=$(cat <<SETVAR 
+This variable 
+runs over multiple lines. 
+SETVAR) 
+echo "$variable"
+
+112.同一个脚本中的函数也可以接受here document的输出作为自身的参数
+GetPersonalData () 
+{
+  read firstname
+  read lastname
+  read address
+  read city
+  read state
+  read zipcode
+}
+# 给上边的函数提供输入. 
+GetPersonalData << RECORD001
+Bozo 
+Bozeman 
+2726 Nondescript Dr. 
+Baltimore 
+MD 
+21226 
+RECORD001
+
+113.注释掉代码块的方法
+: <<DEBUGXXX 
+for file in *
+do
+ cat "$file"
+done
+DEBUGXXX
+
+114.打印两个指定字符之间的所有行（不包括这俩字符）
+sed --silent -e '/DOCUMENTATIONXX$/,/^DOCUMENTATIONXX$/p' "$0"|sed -e '/DOCUMENTATIONXX$/d'
+
+115.删除‘tab’字符
+sed -i 's/\t//g' useridlist.txt
+替换空格为换行符
+[sybase@fkapp2 mhscript]$ sed -i 's/ /\n/g' useridlist.txt 
+[sybase@fkapp2 mhscript]$ cat useridlist.txt 
+zhangaiwu
+
+tangjiansong
+
+
+dingzhiyuan
+
+
+
+zhongnan2
+
+
+zhouxiang2
+
+chenchaohui
+qinrui
+删除空行
+[sybase@fkapp2 mhscript]$ sed -i '/^$/d' useridlist.txt
+[sybase@fkapp2 mhscript]$ cat useridlist.txt 
+zhangaiwu
+tangjiansong
+dingzhiyuan
+zhongnan2
+zhouxiang2
+chenchaohui
+qinrui
+
+116.检查一个变量是否定义
+if (set -u; : $variable) 2> /dev/null 
+then 
+  echo "Variable is set." 
+fi     #  变量已经在当前脚本中被设置, 
+       #+ 或是 Bash 的一个内部变量, 
+       #+ 或是可见环境变量(指已经被导出的环境变量). 
+# 也可以写成            [[ ${variable-x} != x || ${variable-y} != y ]] 
+# 或                    [[ ${variable-x} != x$variable ]] 
+# 或                    [[ ${variable+x} = x ]] 
+# 或                    [[ ${variable-x} != x ]] 
+
+117.另一个应用是检查一个加锁的文件: 
+if (set -C; : > lock_file) 2> /dev/null 
+then 
+  :   # lock_file 不存在,还没有用户运行这个脚本 
+else 
+  echo "Another user is already running that script." 
+exit 65 
+fi
+
+118.受限脚本的应用
+进程替换能比较两个不同命令之间的输出,或者甚至相同命令不同选项的输出. 
+bash$ comm <(ls -l) <(ls -al)
+diff <(ls $first_directory) <(ls $second_directory)
+bzip2 -c < pipe > file.tar.bz2&
+while read  des what mask iface; do 
+   echo $des $what $mask $iface 
+done < <(route -n) 
+ 
+route -n | 
+while read des what mask iface; do   # 管道的输出被赋给了变量. 
+  echo $des $what $mask $iface 
+done
+
+# 一般来说 
+( 
+: | x=x 
+# 看上去是启动了一个子 shell，但是
+x=x < <(:) 
+# 实际上不是 
+)
+
+119.函数定义和调用的理解
+函数
+  function function_name { 
+command... 
+}  
+或 
+function_name () { 
+command... 
+}
+
+f1 () 
+{ 
+  echo "Calling function \"f2\" from within function \"f1\"." 
+  f2 
+} 
+ 
+f2 () 
+{ 
+  echo "Function \"f2\"." 
+} 
+ 
+f1  #  虽然在它定义前被引用过, 
+    #+ 函数"f2"实际到这儿才被调用. 
+    #  这样是允许的. 
+  
+ f1 () 
+{ 
+ 
+  f2 () # nested 
+  { 
+    echo "Function \"f2\", inside \"f1\"." 
+  } 
+ 
+}   
+
+f2  #  引起错误. 
+    #  就是你先"declare -f f2"了也没用. 
+echo     
+f1  #  什么也不做,因为调用"f1"不会自动调用"f2". 
+f2  #  现在,可以正确的调用"f2"了, 
+    #+ 因为之前调用"f1"使"f2"在脚本中变得可见了. 
+	
+120.禁用内建的“exit”
+NO_EXIT=1
+[[ $NO_EXIT -eq 1 ]] && exit() { true; }     # 在"and-list"(and 列表)中定义函数. 
+# 如果 $NO_EXIT 是 1,声明函数"exit ()". 
+# 把"exit"取别名为"true"将会禁用内建的"exit". 
+exit  # 调用"exit ()"函数, 而不是内建的"exit". 
+
+121.shell函数的间接引用
+Hello="Hello, again!" 
+echo_var "$message"        # Hello 
+echo_var "${!message}"     # Hello, again!
+
+122. 
+month_length ()  # 以月份数作为参数. 
+{                # 返回这个月有几天. 
+monthD="31 28 31 30 31 30 31 31 30 31 30 31"
+echo "$monthD" | awk '{ print $'"${1}"' }'
+# 先将参数传递到函数中  ($1 -- 月份号), 然后就到 awk 了. 
+# Awk 将会根据传递进来的月份号来决定打印"print $1 . . . print $12"中的哪个 (依赖于月份号) 
+# 传递参数到内嵌 awk 脚本的模版: $'"${script_parameter}"'
+}
+
+123.函数与"<file"
+file_excerpt ()  # 以要求的模式来扫描文件,然后打印文件相关的部分. 
+{ 
+while read line  # "while" does not necessarily need "[ condition ]" 
+do 
+  echo "$line" | grep $1 | awk -F":" '{ print $5 }'  # awk 指定使用":"为界定符. 
+done 
+} <$file  # 重定向函数的标准输入. 
+file_excerpt $pattern
+
+124.函数与"<file"II
+# 用下面的代替: 
+Function () 
+{ 
+ ... 
+ } < file 
+# 也试一下这个: 
+Function () 
+{ 
+  { 
+    ... 
+   } < file 
+} 
+# 同样, 
+Function ()  # 可以工作. 
+{ 
+  { 
+   echo $* 
+  } | tr a b 
+} 
+# 这个不会工作
+Function () 
+{ 
+  echo $* 
+} | tr a b   # 这儿的内嵌代码块是强制的.
+
+125.shell汉诺塔实现
+#! /bin/bash 
+E_NOPARAM=66  # 没有参数传给脚本. 
+E_BADPARAM=67 # 传给脚本的盘子数不合法. 
+Moves=        # 保存移动次数的全局变量. 
+
+dohanoi() {   # 递归函数. 
+    case $1 in 
+    0) 
+        ;; 
+    *) 
+        dohanoi "$(($1-1))" $2 $4 $3 
+        echo move $2 "-->" $3 
+ 
+let "Moves += 1" 
+        dohanoi "$(($1-1))" $4 $3 $2 
+        ;; 
+    esac 
+} 
+case $# in 
+1) 
+    case $(($1>0)) in     # 至少要有一个盘子. 
+    1) 
+        dohanoi $1 1 3 2 
+        echo "Total moves = $Moves" 
+        exit 0; 
+        ;; 
+    *) 
+        echo "$0: illegal value for number of disks"; 
+        exit $E_BADPARAM; 
+        ;; 
+    esac 
+    ;; 
+*) 
+    echo "usage: $0 N" 
+    echo "       Where \"N\" is the number of disks." 
+    exit $E_NOPARAM; 
+    ;; 
+esac
+
+126.找到当前正在使用的shell类型和版本，找出默认使用的shell类型和版本
+查看当前shell类型
+[root@clientlinux test]# ps -p $$
+   PID TTY          TIME CMD
+ 32268 pts/0    00:00:00 bash
+[root@clientlinux test]# echo $0
+-bash
+查看当前shell版本
+--对于bash
+[root@clientlinux test]# bash --version
+GNU bash, version 4.1.2(1)-release (x86_64-redhat-linux-gnu)
+Copyright (C) 2009 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software; you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+--对于zsh
+[root@clientlinux test]# tcsh --version
+tcsh 6.17.00 (Astron) 2009-07-10 (x86_64-unknown-linux) options wide,nls,dl,al,kan,sm,rh,color,filec
+查看默认shell类型
+[root@clientlinux test]# echo $SHELL
+/bin/bash
+
+127.whiptail创建交互式的对话框
+一个示例，创建一个进度条
+[root@clientlinux test]# cat tmptest 
+#!/bin/bash
+{
+	for((i = 0 ; i <= 100 ; i+=20)); do
+		sleep 1
+		echo $i
+	done
+} | whiptail --gauge "Please wait while installing" 6 60 0
+
+128.隐藏cookie不再使用，/dev/null作为软连接的对象的用法
+ln -s /dev/null ~/.netscape/cookies
+
+129./dev/zero，产生连续不断的null二进制流。写入它的输入会丢失不见，可以读。其主要作用，是用来创建一个指定长度用于初始化的空文件。
+
+130.创建ramdisk
+#!/bin/bash 
+# ramdisk.sh
+#  "ramdisk"是系统 RAM 内存的一段, 
+#+ 它可以被当成是一个文件系统来操作. 
+#  它的优点是存取速度非常快 (包括读和写). 
+#  缺点: 易失性, 当计算机重启或关机时会丢失数据. 
+#+       会减少系统可用的 RAM. 
+#  那么 ramdisk 有什么作用呢? 
+#  保存一个较大的数据集在 ramdisk, 比如一张表或字典, 
+#+ 这样可以加速数据查询, 因为在内存里查找比在磁盘里查找快得多. 
+E_NON_ROOT_USER=70             # 必须用 root 来运行. 
+ROOTUSER_NAME=root 
+MOUNTPT=/mnt/ramdisk 
+SIZE=2000                      # 2K 个块 (可以合适的做修改) 
+BLOCKSIZE=1024                 # 每块有 1K (1024 byte) 的大小 
+DEVICE=/dev/ram0               # 第一个 ram 设备 
+username=`ìd -nu`
+if [ "$username" != "$ROOTUSER_NAME" ] 
+then 
+  echo "Must be root to run \"`basename $0`\"." 
+  exit $E_NON_ROOT_USER 
+fi 
+ 
+if [ ! -d "$MOUNTPT" ]         #  测试挂载点是否已经存在了, 
+then                           #+ 如果这个脚本已经运行了好几次了就不会再建这个目录了 
+  mkdir $MOUNTPT               #+ 因为前面已经建立了. 
+fi 
+ 
+dd if=/dev/zero of=$DEVICE count=$SIZE bs=$BLOCKSIZE  # 把 RAM 设备的内容用零填
+                                                      # 为何需要这么做? 
+mke2fs $DEVICE                 # 在 RAM 设备上创建一个 ext2 文件系统. 
+mount $DEVICE $MOUNTPT         # 挂载设备. 
+chmod 777 $MOUNTPT             # 使普通用户也可以存取这个 ramdisk. 
+                               # 但是, 只能由 root 来缷载它. 
+echo "\"$MOUNTPT\" now available for use." 
+# 现在 ramdisk 即使普通用户也可以用来存取文件了. 
+#  注意, ramdisk 是易失的, 所以当计算机系统重启或关机时 ramdisk 里的内容会消失. 
+#  拷贝所有你想保存文件到一个常规的磁盘目录下. 
+# 重启之后, 运行这个脚本再次建立起一个 ramdisk. 
+# 仅重新加载 /mnt/ramdisk 而没有其他的步骤将不会正确工作. 
+#  如果加以改进, 这个脚本可以放在 /etc/rc.d/rc.local, 
+#+ 以使系统启动时能自动设立一个 ramdisk. 
+#  这样很合适速度要求高的数据库服务器. 
+exit 0
+
+131.rsync远程同步与expect交互式输入密码，并保存密码
+不要expect的脚本在每次拷贝完一个文件后询问密码（如果你启用了ssh密钥验证，那么就不会询问密码），
+而使用了expect的脚本中，则只会提示一次输入密码。
+#!/bin/bash
+backupf='/tmp/bckup.txt'
+echo "Shell Script Backup Your Files / Directories Using rsync"
+while [ x$desthost = "x" ]; do
+read -p "Destination backup Server : " desthost
+done
+# 检查是否输入了目标文件夹，如果为空就再次提示用户输入
+while [ x$destpath = "x" ]; do
+read -p "Destination Folder : " destpath
+done
+
+while [ x$password = "x" ]; do
+# 使用 -s 选项不回显输入的密码
+read -sp "Password : " password
+done
+
+for line in `cat $backupf`
+do
+echo "Copying $line ... "
+# 使用 expect 来在脚本中输入密码
+/usr/bin/expect << EOD
+# 推荐设置超时为 -1 
+set timeout -1
+# 通过 rsync 复制文件/文件夹到目标位置，使用 expect 的组成部分 spawn 命令
+spawn rsync -ar ${line} ${desthost}:${destpath}
+# 上一行命令会等待 “password” 提示
+expect "*?assword:*"
+# 在脚本中提供密码
+send "${password}\r"
+# 等待文件结束符（远程服务器处理完了所有事情）
+expect eof
+# 结束 expect 脚本
+EOD
+echo "DONE"
+done
+
+132.远程修改密码
+有一千台机器client0001、client0002、......、client1000需要定期修改oracle这个用户的密码，另外一台机器server0000分别与它们建立了ssh信任关系。
+请在server0000上用shell脚本生成一个随机字符串，然后批量连接这一千台机器并修改oracle用户的密码，这些client机器统一使用前面生成的字符串作为新密码。
+密码的复杂度要求是：8位长度，至少1位小写字母，至少1位大写字母，至少1为数字。最后生成一份统计信息，记录哪些机器修改成功，哪些机器修改失败，并记录新的密码。
+#! /bin/bash
+newpasswd=$(mkpasswd -l8)
+exec 3<>newpasswd.log
+echo -e "Newpasswd:\t$newpasswd\nClient\tStatus" >&3
+for ((i=1;i<1001;i++))
+        do
+                client=$(printf "client%04d" $i)
+                { ssh $client "echo $newpasswd|passwd --stdin orcale"
+                echo -e "$client\t$?" >&3 
+                }&
+                [ ${i: -1} -eq 0 ]&&wait
+done
+exec 3>&-
+
+133.数据库表的列内容比较，输出非重合的列到文件中
+Oracle数据库dbFirst里面有一张表employee1，包含两列：id和email。MySQL数据库dbSecond里面有一张表employee2，同样包含两列：id和email。
+两个数据库的用户名都是myuser，密码都是mypass，两张表的数据量都在一千万行左右。请用shell脚本获取两张表的数据，
+然后比较出两张表中互不相同的id和email分别输出到文件different_id.txt和different_email.txt。
+#! /bin/bash
+sqlplus myuser/mypassset <<EOF >id_oracle
+head off
+set feed off
+set headsep off
+set newp none
+set linesize 255
+set sqlblanklines OFF
+select id from employee1 order by id
+EOF
+sqlplus myuser/mypassset <<EOF >email_oracle
+head off
+set feed off
+set headsep off
+set newp none
+set linesize 255
+set sqlblanklines OFF
+select email from employee1 order by email
+EOF
+mysql -umyuser -pmypass -e "select id from dbSecond.employee2 order by id" >id_mysql
+mysql -umyuser -pmypass -e "select email from dbSecond.employee2 order by email" >email_mysql
+sort -m id_{oracle,myslq}|uniq -u >different_id.txt #sort -m表示混合两张排序过的表，并且不重新排序
+sort -m email_{oracle,myslq}|uniq -u >different_email.txt
+
+134.使用trap捕捉变量值
+trap '' 2 
+#忽略信号 2 (Control-C), 没有指定处理动作.  
+trap 'echo "Control-C disabled."' 2 
+#当按 Control-C 时显示一行信息. 
+
+135.用shell实现洗牌效果
+[root@clientlinux test]# while read i; do echo "$i $RANDOM";done<file1|sort -nk2 | cut -d" " -f1
+
+136.把颜色设置为常规
+tput sgr0
+echo -ne \E[0m
+
+137.赛马--bash实现
+[root@clientlinux test]# cat tmptest | grep -v "^$"
+#!/bin/bash
+E_RUNERR=65
+# 检查 md5sum 和 bc 是不是安装了.
+if ! which bc &> /dev/null; then
+echo bc is not installed.
+echo "Can\'t run . . . "
+exit $E_RUNERR
+fi
+if ! which md5sum &> /dev/null; then
+echo md5sum is not installed.
+echo "Can\'t run . . . "
+exit $E_RUNERR
+fi
+# 更改下面的变量值可以使脚本执行的更慢.
+# 它会作为usleep 的参数 (man usleep)
+#+ 并且它的单位是微秒 (500000 微秒 = 半秒).
+USLEEP_ARG=0
+# 如果脚本接收到ctrl-c 中断,清除临时目录, 恢复终端光标和颜色
+#
+trap 'echo -en "\E[?25h"; echo -en "\E[0m"; stty echo;\
+tput cup 20 0; rm -fr $HORSE_RACE_TMP_DIR' TERM EXIT
+# 参考调试的章节了解'trap'的更多解释
+# 给脚本设置一个唯一(实际不是绝对唯一的)的临时目录名.
+HORSE_RACE_TMP_DIR=$HOME/.horserace-`date +%s`-`head -c10 /dev/urandom |
+md5sum | head -c30`
+# 创建临时目录,并切换到该目录下.
+mkdir $HORSE_RACE_TMP_DIR
+cd $HORSE_RACE_TMP_DIR
+# 这个函数把光标移动到行为 $1 列为 $2 然后打印 $3.
+# 例如: "move_and_echo 5 10 linux" 等同于
+#+ "tput cup 4 9; echo linux", 但是用一个命令代替了两个.
+# 注: "tput cup" 表示在终端左上角的 0 0 位置,
+#+ echo 是在终端的左上角的 1 1 位置.
+move_and_echo() {
+echo -ne "\E[${1};${2}H""$3"
+}
+# 产生1-9 之间伪随机数的函数.
+random_1_9 () {
+head -c10 /dev/urandom | md5sum | tr -d [a-z] | tr -d 0 | cut -c1
+}
+# 画马时模拟运动的两个函数.
+draw_horse_one() {
+echo -n " "//$MOVE_HORSE//
+}
+draw_horse_two(){
+echo -n " "\\\\$MOVE_HORSE\\\\
+}
+# 取得当前的终端尺寸.
+N_COLS=`tput cols`
+N_LINES=`tput lines`
+# 至少需要 20-行 X 80-列的终端尺寸. 检查一下.
+if [ $N_COLS -lt 80 ] || [ $N_LINES -lt 20 ]; then
+echo "`basename $0` needs a 80-cols X 20-lines terminal."
+echo "Your terminal is ${N_COLS}-cols X ${N_LINES}-lines."
+exit $E_RUNERR
+fi
+# 开始画赛场.
+# 需要一个80 个字符的字符串,看下面的.
+BLANK80=`seq -s "" 100 | head -c80`
+clear
+# 把前景和背景颜色设置成白色的.
+echo -ne '\E[37;47m'
+# 把光标移到终端的左上角.
+tput cup 0 0
+# 画六条白线.
+for n in `seq 5`; do
+echo $BLANK80 # 线是用80 个字符组成的字符串.
+done
+# 把前景色设置成黑色.
+echo -ne '\E[30m'
+move_and_echo 3 1 "START 1"
+move_and_echo 3 75 FINISH
+move_and_echo 1 5 "|"
+move_and_echo 1 80 "|"
+move_and_echo 2 5 "|"
+move_and_echo 2 80 "|"
+move_and_echo 4 5 "| 2"
+move_and_echo 4 80 "|"
+move_and_echo 5 5 "V 3"
+move_and_echo 5 80 "V"
+# 把前景色设置成红色.
+echo -ne '\E[31m'
+# 一些ASCII 艺术.
+move_and_echo 1 8 "..@@@..@@@@@...@@@@@.@...@..@@@@..."
+move_and_echo 2 8 ".@...@...@.......@...@...@.@......."
+move_and_echo 3 8 ".@@@@@...@.......@...@@@@@.@@@@...."
+move_and_echo 4 8 ".@...@...@.......@...@...@.@......."
+move_and_echo 5 8 ".@...@...@.......@...@...@..@@@@..."
+move_and_echo 1 43 "@@@@...@@@...@@@@..@@@@..@@@@."
+move_and_echo 2 43 "@...@.@...@.@.....@.....@....."
+move_and_echo 3 43 "@@@@..@@@@@.@.....@@@@...@@@.."
+move_and_echo 4 43 "@..@..@...@.@.....@.........@."
+move_and_echo 5 43 "@...@.@...@..@@@@..@@@@.@@@@.."
+# 把前景和背景颜色设为绿色.
+echo -ne '\E[32;42m'
+# 画11 行绿线.
+tput cup 5 0
+for n in `seq 11`; do
+echo $BLANK80
+done
+# 把前景色设为黑色.
+echo -ne '\E[30m'
+tput cup 5 0
+# 画栅栏.
+echo "++++++++++++++++++++++++++++++++++++++\
+++++++++++++++++++++++++++++++++++++++++++"
+tput cup 15 0
+echo "++++++++++++++++++++++++++++++++++++++\
+++++++++++++++++++++++++++++++++++++++++++"
+# 把前景和背景色设回白色.
+echo -ne '\E[37;47m'
+# 画3 条白线.
+for n in `seq 3`; do
+echo $BLANK80
+done
+# 把前景色设为黑色.
+echo -ne '\E[30m'
+# 创建9 个文件来保存障碍物.
+for n in `seq 10 7 68`; do
+touch $n
+done
+# 设置脚本要画的马的类型为第一种类型.
+HORSE_TYPE=2
+# 为每匹马创建位置文件和机率文件.
+#+ 在这些文件里保存了该匹马当前的位置,
+#+ 类型和机率.
+for HN in `seq 9`; do
+touch horse_${HN}_position
+touch odds_${HN}
+echo \-1 > horse_${HN}_position
+echo $HORSE_TYPE >> horse_${HN}_position
+# 给马定义随机的障碍物.
+HANDICAP=`random_1_9`
+# 检查random_1_9 函数是否返回了有效值.
+while ! echo $HANDICAP | grep [1-9] &> /dev/null; do
+HANDICAP=`random_1_9`
+done
+# 给马定义最后的障碍的位置.
+LHP=`expr $HANDICAP \* 7 + 3`
+for FILE in `seq 10 7 $LHP`; do
+echo $HN >> $FILE
+done
+# 计算机率.
+case $HANDICAP in
+1) ODDS=`echo $HANDICAP \* 0.25 + 1.25 | bc`
+echo $ODDS > odds_${HN}
+;;
+2 | 3) ODDS=`echo $HANDICAP \* 0.40 + 1.25 | bc`
+echo $ODDS > odds_${HN}
+;;
+4 | 5 | 6) ODDS=`echo $HANDICAP \* 0.55 + 1.25 | bc`
+echo $ODDS > odds_${HN}
+;;
+7 | 8) ODDS=`echo $HANDICAP \* 0.75 + 1.25 | bc`
+echo $ODDS > odds_${HN}
+;;
+9) ODDS=`echo $HANDICAP \* 0.90 + 1.25 | bc`
+echo $ODDS > odds_${HN}
+esac
+done
+# 打印机率.
+print_odds() {
+tput cup 6 0
+echo -ne '\E[30;42m'
+for HN in `seq 9`; do
+echo "#$HN odds->" `cat odds_${HN}`
+done
+}
+# 在起跑线上画马.
+draw_horses() {
+tput cup 6 0
+echo -ne '\E[30;42m'
+for HN in `seq 9`; do
+echo /\\$HN/\\" "
+done
+}
+print_odds
+echo -ne '\E[47m'
+# 等待回车按键开始赛马.
+# 转义序列'\E[?25l'禁显了光标.
+tput cup 17 0
+echo -e '\E[?25l'Press [enter] key to start the race...
+read -s
+# 禁用了终端的常规显示功能.
+# 这避免了赛跑时不小心按了按键键入显示字符而弄乱了屏幕.
+#
+stty -echo
+# --------------------------------------------------------
+# 开始赛跑.
+draw_horses
+echo -ne '\E[37;47m'
+move_and_echo 18 1 $BLANK80
+echo -ne '\E[30m'
+move_and_echo 18 1 Starting...
+sleep 1
+# 设置终点线的列数.
+WINNING_POS=74
+# 记录赛跑开始的时间.
+START_TIME=`date +%s`
+# COL 是由下面的"while"结构使用的.
+COL=0
+while [ $COL -lt $WINNING_POS ]; do
+MOVE_HORSE=0
+# 检查random_1_9 函数是否返回了有效值.
+while ! echo $MOVE_HORSE | grep [1-9] &> /dev/null; do
+MOVE_HORSE=`random_1_9`
+done
+# 取得随机取得的马的类型和当前位置.
+HORSE_TYPE=`cat horse_${MOVE_HORSE}_position | tail -1`
+COL=$(expr `cat horse_${MOVE_HORSE}_position | head -1`)
+ADD_POS=1
+# 检查当前的位置是否是障碍物的位置.
+if seq 10 7 68 | grep -w $COL &> /dev/null; then
+if grep -w $MOVE_HORSE $COL &> /dev/null; then
+ADD_POS=0
+grep -v -w $MOVE_HORSE $COL > ${COL}_new
+rm -f $COL
+mv -f ${COL}_new $COL
+else ADD_POS=1
+fi
+else ADD_POS=1
+fi
+COL=`expr $COL + $ADD_POS`
+echo $COL > horse_${MOVE_HORSE}_position # 保存新位置.
+# 选择要画的马的类型.
+case $HORSE_TYPE in
+1) HORSE_TYPE=2; DRAW_HORSE=draw_horse_two
+;;
+2) HORSE_TYPE=1; DRAW_HORSE=draw_horse_one
+esac
+echo $HORSE_TYPE >> horse_${MOVE_HORSE}_position # 保存当前类型.
+# 把前景色设为黑,背景色设为绿.
+echo -ne '\E[30;42m'
+# 把光标位置移到新的马的位置.
+tput cup `expr $MOVE_HORSE + 5` `cat horse_${MOVE_HORSE}_position |
+head -1`
+# 画马.
+$DRAW_HORSE
+usleep $USLEEP_ARG
+# 当所有的马都越过15 行的之后,再次打印机率.
+touch fieldline15
+if [ $COL = 15 ]; then
+echo $MOVE_HORSE >> fieldline15
+fi
+if [ `wc -l fieldline15 | cut -f1 -d " "` = 9 ]; then
+print_odds
+: > fieldline15
+fi
+# 取得领头的马.
+HIGHEST_POS=`cat *position | sort -n | tail -1`
+# 把背景色重设为白色.
+echo -ne '\E[47m'
+tput cup 17 0
+echo -n Current leader: `grep -w $HIGHEST_POS *position | cut -c7`"
+"
+done
+# 取得赛马结束的时间.
+FINISH_TIME=`date +%s`
+# 背景色设为绿色并且启用闪动的功能.
+echo -ne '\E[30;42m'
+echo -en '\E[5m'
+# 使获胜的马闪动.
+tput cup `expr $MOVE_HORSE + 5` `cat horse_${MOVE_HORSE}_position | head -1`
+$DRAW_HORSE
+# 禁用闪动文本.
+echo -en '\E[25m'
+# 把前景和背景色设为白色.
+echo -ne '\E[37;47m'
+move_and_echo 18 1 $BLANK80
+# 前景色设为黑色.
+echo -ne '\E[30m'
+# 闪动获胜的马.
+tput cup 17 0
+echo -e "\E[5mWINNER: $MOVE_HORSE\E[25m"" Odds: `cat odds_${MOVE_HORSE}`"\
+" Race time: `expr $FINISH_TIME - $START_TIME` secs"
+# 恢复光标和最初的颜色.
+echo -en "\E[?25h"
+echo -en "\E[0m"
+# 恢复回显功能.
+stty echo
+# 删除赛跑的临时文件.
+rm -rf $HORSE_RACE_TMP_DIR
+tput cup 19 0
+exit 0
+
+138.优先使用内建命令，而不是系统命令。这是因为内建命令执行得更快，并且在调用时，一般都不会产生子进程。
+
+139.在文件头添加内容
+file=data.txt 
+title="***This is the title line of data text file***" 
+echo $title | cat - $file >$file.new
+
+140.脚本库 
+ROOT_UID=0             # Root 用户的 $UID 值是 0. 
+E_NOTROOT=101          # 非 root 用户出错代码.  
+MAXRETVAL=255          # 函数最大的的返回值(正值). 
+SUCCESS=0 
+FAILURE=-1 
+# 函数 
+Usage ()               # "Usage:" 信息(即帮助信息). 
+{ 
+  if [ -z "$1" ]       # 没有传递参数. 
+  then 
+    msg=filename 
+  else 
+    msg=$@ 
+  fi 
+  echo "Usage: `basename $0` "$msg"" 
+}   
+Check_if_root ()       # 检查是不是 root 在运行脚本. 
+{                      # 取自例子"ex39.sh". 
+  if [ "$UID" -ne "$ROOT_UID" ] 
+  then 
+    echo "Must be root to run this script." 
+    exit $E_NOTROOT 
+  fi 
+}   
+CreateTempfileName ()  # 创建一个"唯一"的临时文件. 
+{                      # 取自例子"ex51.sh". 
+  prefix=temp 
+  suffix=`eval date +%s`  
+  Tempfilename=$prefix.$suffix
+}
+isalpha2 ()            # 测试字符串是不是都是字母组成的. 
+{                      # 取自例子"isalpha.sh". 
+  [ $# -eq 1 ] || return $FAILURE 
+  case $1 in 
+  *[!a-zA-Z]*|"") return $FAILURE;; 
+  *) return $SUCCESS;; 
+  esac                 # Thanks, S.C. 
+} 
+abs ()                           # 绝对值. 
+{                                # 注意: 最大的返回值 = 255. 
+  E_ARGERR=-999999 
+  if [ -z "$1" ]                 # 要传递参数. 
+  then 
+    return $E_ARGERR             # 返回错误. 
+  fi 
+  if [ "$1" -ge 0 ]              # 如果非负的值, 
+  then                           # 
+    absval=$1                    # 绝对值是本身. 
+  else                           # 否则, 
+    let "absval = (( 0 - $1 ))"  # 改变它的符号. 
+  fi   
+  return $absval 
+} 
+tolower ()             #  把传递的字符串转为小写 
+{                      # 
+  if [ -z "$1" ]       #  如果没有传递参数, 
+  then                 #+ 打印错误信息 
+    echo "(null)"      #+ (C 风格的 void 指针的错误信息) 
+    return             #+ 然后从函数中返回. 
+  fi   
+  echo "$@" | tr A-Z a-z 
+  # 转换传递过来的所有参数($@). 
+  return 
+}
+
+141.使用if结构注释代码块
+#!/bin/bash 
+COMMENT_BLOCK=
+if [ $COMMENT_BLOCK ]; then
+Comment block --
+=================================
+This is a comment line.
+This is another comment line.
+This is yet another comment line.
+=================================
+echo "This will not echo." 
+Comment blocks are error-free! Whee!
+fi
+echo "No more comments, please." 
+exit 0
+
+142.使脚本创建的文件的权限是755
+!/bin/bash 
+PATH=/bin:/usr/bin:/usr/local/bin ; export PATH 
+umask 022   # 脚本的创建的文件有 755 的权限设置. 
+
+143.检测命令是否被安装
+CMD=command1                 # 第一选择 First choice. 
+PlanB=command2               # 第二选择 Fallback option. 
+command_test=$(whatis "$CMD" | grep 'nothing appropriate') 
+#  如果'command1'没有在系统里发现 , 'whatis'会返回: 
+#+ "command1: nothing appropriate." 
+#  另一种更安全的办法是: 
+#     command_test=$(whereis "$CMD" | grep \/) 
+#  但后面的测试判断应该翻转过来, 
+#+ 因为$command_test 只有当系统存在$CMD 命令时才有内容.
+if [[ -z "$command_test" ]]  # 检查命令是否存在. 
+then 
+  $CMD option1 option2       #  调用 command1. 
+else                         #  否则, 
+  $PlanB                     #+ 调用 command2.  
+fi
+
+144.一行代码实现类似Matrix字符界面效果
+tr -c "[:digit:]" " " < /dev/urandom | dd cbs=$COLUMNS conv=unblock | GREP_COLOR="1;32" grep --color -e "[^ ]"
+
+145.logger -t 打印一个命令的输出至/var/log/message
+[root@clientlinux test]# cat jojo.txt | logger -t cat
+[root@clientlinux test]# 
+[root@clientlinux log]# tail -f messages
+Dec 29 09:02:08 clientlinux cat: this is jojo.txt
