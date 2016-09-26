@@ -1,0 +1,48 @@
+#!/bin/sh
+date=`date`
+DATE=`date "+%Y%m%d"`
+DATEL=`date -d "-1 month" "+%Y%m%d"`
+
+Y=`expr substr $DATE 1 4`
+M=`expr substr $DATE 5 2`
+YL=`expr substr $DATEL 1 4`
+ML=`expr substr $DATEL 5 2`
+
+YYL=$YL
+MML=$ML
+YY=$Y
+MM=`expr $M - 2`
+if [ $M -eq "02" ] ; then
+    YY=`expr $Y - 1`
+    MM=12
+fi
+
+if [ $M -eq "01" ] ; then
+    YY=`expr $YY - 1`
+    MM=11
+fi
+MM=`printf "%02d" $MM`
+
+echo "***The date of files to be deleted is: $YY$MM***" >> /home/sybase/monthly/$DATE.txt
+
+touch /home/sybase/monthly/start
+
+#delete logs
+cd /home/sybase/daily/log
+echo "*************************DELETED-LOGS     ${date}*************************" >> /home/sybase/monthly/$DATE.txt
+ls -l dump_79_$YY$MM*.log >> /home/sybase/monthly/$DATE.txt 2> /dev/null
+rm -rf dump_79_$YY$MM*.log
+
+#delete data
+cd /opt/sybase/backup/del 
+echo "*************************DELETED-DATA     ${date}*************************" >> /home/sybase/monthly/$DATE.txt
+ls -l >> /home/sybase/monthly/$DATE.txt 2> /dev/null
+rm -rf hbdsfk_cmp5_$YY$MM*.dmp
+
+#move the last-month'data to del-dir
+cd /opt/sybase/backup
+echo "*************************MOVE-DATA-to-DEL     ${date}*************************" >> /home/sybase/monthly/$DATE.txt
+ls -l hbdsfk_cmp5_$YYL$MML*.dmp >> /home/sybase/monthly/$DATE.txt 2> /dev/null
+mv hbdsfk_cmp5_$YYL$MML*.dmp del 2> /dev/null
+
+touch /home/sybase/monthly/end
