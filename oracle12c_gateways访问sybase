@@ -1,0 +1,359 @@
+安装gateways实现oracle12c对sybase15.7数据库的访问（列一下我的配置）
+
+1.环境描述
+IP--148.16.34.192
+OS--REL6.5(64bits)
+安装软件--Oracle12cserver,gateways1201,sybase15.7client(可选项)
+硬件架构--6G RAM,4 CPU,100G 硬盘
+
+IP--148.16.34.191
+OS--REL6.5(64bits)
+安装软件--Sybase15.7server
+硬件架构--2G RAM，2 CPU,100G 硬盘
+
+
+2.191端服务安装配置不做介绍
+
+
+3.在192端安装Oracle12c数据库
+参考--
+/etc/init.d/NetworkManager stop
+chkconfig NetworkManager off
+vim /etc/sysconfig/network-scripts/ifcfg-eth0 
+service network restart
+ifconfig eth0
+service iptables stop
+iptables -nvL
+/etc/init.d/iptables save
+vim /etc/selinux/config 
+setenforce 0
+getenforce 
+setenforce 1
+getenforce 
+setenforce 0
+getenforce 
+cat /etc/selinux/config 
+init 6
+xhost +
+xclock
+xhost + 148.16.34.190
+xclock
+uname
+uname -a
+cd /etc/yum.repos.d/
+ll
+mv rhel-source.repo rhel-source.repo.bak
+[rhel-source]
+name=Red Hat Enterprise Linux $releasever - $basearch - Source
+baseurl=file:///media/
+enabled=1
+gpgcheck=0
+gpgkey=file:///media/RPM-GPG-KEY-redhat-release
+df -h
+cd /media/
+ll
+cd -
+mount -t iso9660 /dev/cdrom /media/
+df -h
+vim rserver.repo
+yum cleanall
+yum clean all
+yum makecache
+yum install lrzsz -y
+yum install xclock -y
+xclock 
+grep "model name" /proc/cpuinfo 
+grep MemTotal /proc/meminfo
+grep SwapTotal /proc/meminfo
+free -g
+df -h
+df -h /tmp
+uname -m
+uname -r
+cat /etc/redhat-release 
+lsb_release -id
+yum list
+yum install compat-lib* -y
+yum install gcc-c++ -y
+yum install glibc-* -y
+rpm -q glibc
+rpm -q glibc-devel
+yum install glibc-devel-* -y
+yum install ksh -y
+yum install libgcc-* -y
+yum install libstdc++-* -y
+yum install libaio* -y
+yum install libXext* -y
+yum install libXtst* -y
+yum install libX11* -y
+yum install libXau* -y
+yum install libXcb* -y
+yum install libxcb* -y
+yum install libXi* -y
+yum install make* -y
+yum install sysstat-* -y
+yum install libstdc++-devel.i686 -y
+yum install glibc.i686 libgcc.i686 libstdc++.i686 glibc-devel.i686 -y
+yum list | grep compat-libstdc
+yum install compat-libstdc++-33.i686 -y
+yum list | grep glibc
+yum install glibc*.i686 -y
+yum install glibc.i686 -y
+yum -y install glibc-devel.i686 
+yum -y install libgcc*.i686
+yum -y install libstdc++*.i686
+yum -y install libaio*.i686 
+yum -y install libXext*.i686 
+yum -y install libXtst*.i686 
+yum -y install libX11*.i686 
+yum -y install libXau*.i686 
+yum -y install libxcb*.i686 
+yum -y install libXi*.i686
+内核文件的修改，主要参考官方文档，oui安装oracle时也会提示不对的参数设置并且有自动更正的功能
+[root@localhost install_oracle_gateways]# cat /etc/sysctl.conf | grep -v '^#' | grep -vE '^$'
+net.ipv4.ip_forward = 0
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.default.accept_source_route = 0
+kernel.sysrq = 0
+kernel.core_uses_pid = 1
+net.ipv4.tcp_syncookies = 1
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0
+net.bridge.bridge-nf-call-arptables = 0
+kernel.msgmnb = 65536
+kernel.msgmax = 65536
+kernel.shmmax = 3093350400
+kernel.shmall = 1572864
+kernel.shmmni = 4096
+kernel.sem = 250	32000	100	128
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmen_max = 262144
+net.ipv4.ip_local_port_range = 9000 65500
+fs.file-max = 6815744
+fs.aio-max-nr = 1048576
+net.core.wmem_max = 1048576
+#root下执行
+groupadd dba
+groupadd oinstall
+useradd -g oinstall -G dba oracle
+id oracle
+echo "oracle" | passwd --stdin oracle
+mkdir -p /u01/app/oracle
+chown -R oracle:oinstall /u01/app/oracle
+chmod -R 775 /u01/app/oracle/
+/usr/sbin/sestatus 
+/usr/sbin/getenforce 
+getconf PAGESIZE
+cp /etc/sysctl.conf /etc/sysctl.conf.bak20151221
+vim /etc/sysctl.conf
+cat /etc/sysctl.conf | grep -v '^#'
+cat /etc/sysctl.conf | grep -v '^#' | grep -vE '^$'
+vim /etc/sysctl.conf
+cat /etc/sysctl.conf | grep -v '^#' | grep -vE '^$'
+vim /etc/security/limits.conf 
+cp /etc/security/limits.conf /etc/security/limits.conf.bak
+vim /etc/security/limits.conf
+cp /etc/pam.d/login /etc/pam.d/login.bak20151221
+vim /etc/pam.d/login
+cp /etc/profile /etc/profile.bak20151221
+#vim /etc/profile
+HOSTNAME=`/bin/hostname 2>/dev/null`
+HISTSIZE=1000
+if [ "$HISTCONTROL" = "ignorespace" ] ; then
+    export HISTCONTROL=ignoreboth
+else
+    export HISTCONTROL=ignoredups
+fi
+
+export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL
+
+# By default, we want umask to get set. This sets it for login shell
+# Current threshold for system reserved uid/gids is 200
+# You could check uidgid reservation validity in
+# /usr/share/doc/setup-*/uidgid file
+if [ $UID -gt 199 ] && [ "`id -gn`" = "`id -un`" ]; then
+    umask 002
+else
+    umask 022
+fi
+
+for i in /etc/profile.d/*.sh ; do
+    if [ -r "$i" ]; then
+        if [ "${-#*i}" != "$-" ]; then
+            . "$i"
+        else
+            . "$i" >/dev/null 2>&1
+        fi
+    fi
+done
+
+unset i
+unset -f pathmunge
+
+if [ $USER = "oracle" ]; then
+        ulimit -u 16384
+        ulimit -n 65536
+fi
+
+su - oracle
+exit
+su - oracle
+cd /u01/app/
+mkdir oraInventory
+ll
+chown -R oracle:oinstall oraInventory/
+oracle12c的安装网上很多参考资料，官方文档也写的很详细，我随便写的。
+xshell远程显示图形界面的操作
+xhost + 148.16.34.190
+export DISPLAY=148.16.34.190:0.0
+xclock
+
+4.在192端安装gateways
+上传文件到/tmp目录，解压
+$ cd gateways/
+$./runInstaller
+安装目录选择
+[oracle@localhost gateways]$ cd /u01/app/oracle/product/12.1.0/tg_1
+我没在图形化界面配置监听，windows试过图形化界面配置监听会出错。所以，linux直接取消了。
+[oracle@localhost admin]$ pwd
+/u01/app/oracle/product/12.1.0/tg_1/dg4sybs/admin
+[oracle@localhost admin]$ ll
+total 144
+-rw-r--r-- 1 oracle oinstall 71785 Nov 18  2008 dg4sybs_cvw120.sql
+-rw-r--r-- 1 oracle oinstall 53066 Jun  9  2007 dg4sybs_cvw.sql
+-rw-r--r-- 1 oracle oinstall   738 Jun  8  2007 dg4sybs_tx.sql
+-rw-r--r-- 1 oracle oinstall   282 Dec 21 14:44 initdg4sybs.ora.bak20151221
+-rw-r--r-- 1 oracle oinstall   282 Dec 21 14:36 initpubs2.ora
+-rw-r--r-- 1 oracle oinstall   407 Dec 21 14:36 listener.ora.sample
+-rw-r--r-- 1 oracle oinstall   244 Dec 21 14:36 tnsnames.ora.sample
+[oracle@localhost admin]$ cat initpubs2.ora 
+HS_FDS_CONNECT_INFO=[148.16.34.191]:5000/pubs2
+HS_FDS_TRACE_LEVEL=OFF
+HS_FDS_RECOVERY_ACCOUNT=RECOVER
+HS_FDS_RECOVERY_PWD=RECOVER
+ 
+[oracle@localhost admin]$ pwd
+/u01/app/oracle/product/12.1.0/tg_1/network/admin
+[oracle@localhost admin]$ ll
+total 12
+-rw-r--r-- 1 oracle oinstall  405 Dec 21 15:46 listener.ora
+drwxr-xr-x 2 oracle oinstall 4096 Dec 21 14:35 samples
+-rw-r--r-- 1 oracle oinstall  373 Oct 31  2013 shrept.lst
+[oracle@localhost admin]$ cat listener.ora 
+LISTENER =
+ (ADDRESS_LIST=
+      (ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1522))
+ )
+
+SID_LIST_LISTENER=
+  (SID_LIST=
+      (SID_DESC=
+         (SID_NAME=pubs2)
+         (ORACLE_HOME=/u01/app/oracle/product/12.1.0/tg_1)
+         (PROGRAM=dg4sybs)
+      )
+  )
+
+#CONNECT_TIMEOUT_LISTENER = 0 
+这里有个细节要参考官方文档
+配置PATH和LD_LIBRARY_PATH，把gateways的$ORACLE_HOME/bin:$PATH;export PATH  $ORACLE_HOME/lib:$LD_LIBRARY_PATH;export LD_LIBRARY_PATH
+我在db_1的目录中也添加了监听的配置
+[oracle@localhost admin]$ cat listener.ora
+# listener.ora Network Configuration File: /u01/app/oracle/product/12.1.0/db_1/network/admin/listener.ora
+# Generated by Oracle configuration tools.
+
+LISTENER =
+  (DESCRIPTION_LIST =
+    (DESCRIPTION =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
+      (ADDRESS = (PROTOCOL = IPC)(KEY = EXTPROC1521))
+    )
+  )
+
+LISTENER =
+ (ADDRESS_LIST=
+      (ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1522))
+ )
+
+SID_LIST_LISTENER=
+  (SID_LIST=
+      (SID_DESC=
+         (SID_NAME=pubs2)
+         (ORACLE_HOME=/u01/app/oracle/product/12.1.0/tg_1)
+         (PROGRAM=dg4sybs)
+      )
+  )
+
+
+然后重启监听，会提示你指定的示例名已经被监听。
+然后在db_1的目录下找到tnsname.ora并配置
+[oracle@localhost admin]$ cat tnsnames.ora
+# tnsnames.ora Network Configuration File: /u01/app/oracle/product/12.1.0/db_1/network/admin/tnsnames.ora
+# Generated by Oracle configuration tools.
+
+ORCL =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = orcl.localdomain)
+    )
+  )
+
+pubs2 = 
+  (DESCRIPTION=
+    (ADDRESS=
+      (PROTOCOL=TCP)
+      (HOST=localhost)
+      (PORT=1522)
+    )
+    (CONNECT_DATA=
+      (SID=pubs2)
+    )
+    (HS=OK) 
+  )
+  
+然后创建dblink，并测试
+[oracle@localhost admin]$ sqlplus / as sysdba
+
+SQL*Plus: Release 12.1.0.2.0 Production on Mon Dec 21 18:31:22 2015
+
+Copyright (c) 1982, 2014, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 12c Enterprise Edition Release 12.1.0.2.0 - 64bit Production
+With the Partitioning, OLAP, Advanced Analytics and Real Application Testing options
+
+SQL> create public database link sybase connect to "sa" identified by "sybase" using 'pubs2';
+SQL> select * from sysxtypes@sybase;
+select * from sysxtypes@sybase
+              *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+[Oracle][ODBC Sybase Wire Protocol driver][SQL Server]"SYSXTYPES" not found.
+Specify owner.objectname or use sp_help to check whether the object exists
+(sp_help may produce lots of output).
+{42S02,NativeErr = 208}
+ORA-02063: preceding 3 lines from SYBASE
+
+两个数据库sql的语法不一样，sql server是大小写敏感型的，所以，小写的表名字要用双引号引用才行，这样
+SQL> select * from "authors"@sybase;
+
+au_id	    au_lname				     au_fname
+----------- ---------------------------------------- --------------------
+phone	     address				      city		   st
+------------ ---------------------------------------- -------------------- --
+country      postalcode
+------------ ----------
+172-32-1176 White				     Johnson
+408 496-7223 10932 Bigge Rd.			      Menlo Park	   CA
+USA	     94025
+
+这样就配置完成了。
+
+
+参考资料
+
