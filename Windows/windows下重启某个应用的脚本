@@ -1,0 +1,25 @@
+以重启有道为例：
+@ECHO OFF
+
+:check YodaoDict.exe
+tasklist > list.txt
+find /i "YodaoDict.exe" list.txt
+if "%errorlevel%"=="1" (goto start) else (goto k)
+
+:k
+taskkill /f /im YodaoDict.exe
+
+:start
+cls
+startup.bat
+
+:check cmd.exe
+tasklist > list2.txt
+find /i "cmd.exe" list2.txt
+if "%errorlevel%"=="1" (goto k)
+
+:k
+taskkill /f /im cmd.exe
+
+:end
+exit
