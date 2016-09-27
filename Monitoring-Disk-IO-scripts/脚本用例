@@ -1,0 +1,22 @@
+#脚本使用示例
+#以下为 IOAnalyzer.sh 脚本在 AIX 上使用示例
+#1 ．后台执行 iostat, 并将输出重定向到文件中
+#清单 11. 后台执行 iostat
+# nohup iostat -d 5 > /root/iostat.out &  
+#（对于 Linux，运行 iostat -d – x 5 > /root/iostat.out &）
+#2 ．编辑 crontab 文件，每 10 分钟运行一次 IOAnalyzer.sh 脚本，-u 70 –r 80，表示在距上次运行 IOAnalyzer.sh 至今产生的某磁盘的监控记录中的 80% 使用率达到或超过 70%，即发出告警。告警日志和分析日志可通过 IOAnalyzer.sh 的 –l –a 参数指定，本例保持默认值，即在 iostat 的输出文件所在目录产生 iostat.out.log 和 iostat.out.alert 文件。
+#清单 12. 编辑 crontab
+ # crontab – e 
+# 0,10,20,30,40,50 * * * * /root/IOAnalyzer.sh -i /root /iostat.out -u 70 \
+#  -r 80>/tmp/iostat.out 2>&1
+#3 ．用户收到告警邮件，需要进一步查询历史记录时，可查看日志文件
+#清单 13. 查看日志文件
+ # cat /root/iostat.out.log | more 
+ IOSTATFILE: /root/iostat.out TIME:200905200255 STARTLINE:7220 ENDLINE:7580  ALARM:YES 
+ IOSTATFILE: /root/iostat.out  TIME:200905200300  STARTLINE:7581 ENDLINE:7940 ALARM:YES 
+ IOSTATFILE:/root/iostat.out TIME:200905200305  STARTLINE:7941 ENDLINE:8300 ALARM:YES 
+
+ [AIXn01]> cat /root/iostat.out.alert | more 
+ DISK:hdisk4     TIME:200905200250         RATE:84      THRESHOLD:70 
+ DISK:hdisk5     TIME:200905200250         RATE:84      THRESHOLD:70 
+ DISK:hdisk6     TIME:200905200250         RATE:84      THRESHOLD:70
