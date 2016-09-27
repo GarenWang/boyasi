@@ -1,0 +1,34 @@
+如果出现错误：Error performing checksum error
+解决方案：
+[root@www rhel6_repo]# pwd
+/home/garen/software/rhel6_repo
+[root@www rhel6_repo]createrepo -d -p -s  sha .
+[root@www yum.repos.d]# cat rhel6.repo rhel.repo
+[rhel6]
+name=rhel6
+baseurl=file:///home/garen/software/rhel6_repo
+enabled=0
+gpgcheck=1
+gpgkey=file:///home/garen/software/rhel6_repo/RPM-GPG-KEY-redhat-release
+[rhel]
+name=rhel
+baseurl=file:///mnt/hgfs/cdrom/Server
+enabled=1
+gpgcheck=1
+gpgkey=file:///mnt/hgfs/cdrom/RPM-GPG-KEY-redhat-release
+
+
+
+需要执行yum update -y
+
+
+成功在rhel5.7上安装iotop的操作如下（rhel5.7默认不含有iotop的rpm包）
+上传rhel5.8的安装介质，并配置yum源;
+然后直接安装。
+
+rhel6以上的版本可以通过“解决方案”中描述的在rhel5中作为yum源，但是并不能起到安装软件的作用（原因可能是内核版本差别太大，很多的一些依赖性软件都找不到）。
+
+安装iotop需要python2.6及以上的版本支持
+
+
+总结：rhel5可以配置rhel5.x的yum源，并且能成功安装软件或者升级。但是rhel5.x不能配置rhel6.x的yum源，需要升级内核。
