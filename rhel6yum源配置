@@ -1,0 +1,15 @@
+在vmware虚拟机中，挂载了光盘，进入系统如下操作：
+moutn -o loop -t iso9660 /dev/cdrom /media/
+然后，
+[root@clientlinux test]# cat /etc/yum.repos.d/rserver.repo 
+[rserver]
+name=Red Hat Enterprise Linux $releasever - $basearch - Source
+baseurl=file:///media/
+enabled=1
+gpgcheck=1
+gpgkey=file:///media/RPM-GPG-KEY-redhat-release
+
+
+如果上传了.iso文件，先要挂载iso文件
+moutn -o loop -t iso9660 xxx.iso /media/
+然后编辑.repo文件
